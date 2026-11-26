@@ -62,7 +62,7 @@ def main():
     # 4. the dataset's own doy for real dates matches the convention used by the window tools
     for date, want in (("2021-01-01", 0), ("2021-07-20", 200), ("2021-12-31", 364)):
         i = int(np.where(t == np.datetime64(date))[0][0])
-        d_tool = (np.datetime64(date) - np.datetime64(date[:4] + "-01-01")).astype(int)   # make_windows / window_server
+        d_tool = (np.datetime64(date) - np.datetime64(date[:4] + "-01-01")).astype(int)   # window_server
         results[f"doy {date}"] = (int(doy_all[i]), int(d_tool))
         assert int(doy_all[i]) == want == int(d_tool), (date, doy_all[i], d_tool, want)
     # 5. leap year: 31 Dec 2020 is 0-based doy 365 (366 days in the year). The contract's period is 365, so the
