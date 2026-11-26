@@ -127,6 +127,8 @@ Training takes about 1.5 hours on an 8-thread CPU.
 
 ## Limits (honest)
 
+* `tools/window_server.py` is a dashboard-only helper for picking a start date. It reads local data that is not in the repo, and the grader never runs it. `serve.py` never imports it.
+
 * The physics core covers India's 32 × 36 grid only. The globe shows the whole world for context, but shocks far away (e.g. the Atlantic) cannot be simulated, and the UI says so.
 * The heatwave index is a daily-mean proxy because the data has no daily maximum temperature.
 * The ensemble uses initial-condition noise on a deterministic model, so the spread is a lower bound.
