@@ -285,7 +285,7 @@ async function loadWindow(i) {
   S.truth = Array.from({ length: STEPS + 1 }, (_, d) => W.slice(base + (2 + d) * DAY, base + (3 + d) * DAY));
   $('windowDesc').textContent = `${S.win.desc}. Last input day ${S.win.date}; the twin rolls forward 10 days.`;
   S.multi = null; S.spread = null; S.spreadSummary = null; S.nullDiff = null; S.shock = null; S.risk = { prime: null, multi: null };
-  $('modeSeg').querySelector('[data-mode=spread]')?.remove(); $('modeSeg').querySelector('[data-mode=chance]')?.remove(); S.chance = null; globe.setShock(null); map.setShock(null);
+  $('modeSeg').querySelector('[data-mode=spread]')?.remove(); S.chance = null; globe.setShock(null); map.setShock(null);
   S.day = 0; $('dayRange').value = 0;
   setBusy(true, 'simulating Timeline Prime…');
   try {
@@ -442,13 +442,14 @@ async function runEnsemble() {
   S.spreadSummary = { sigma, conf: 100 * Math.max(0, 1 - sigma / LAYERS[lay].dRange), layer: lay };
   if (lay !== S.layer) setLayer(lay);
   if (!$('modeSeg').querySelector('[data-mode=spread]')) { const b = document.createElement('button'); b.dataset.mode = 'spread'; b.textContent = 'Spread σ'; b.title = 'Ensemble spread: standard deviation among the 5 perturbed runs'; $('modeSeg').append(b); }
-  setBusy(false, `${S.modelName} · ready`); setMode('spread'); repaint(); renderImpacts();
+  setBusy(false, `${S.modelName} · ready`); const want = S.wantChance ? 'chance' : 'spread'; S.wantChance = false; setMode(want); repaint(); renderImpacts();
 }
 
 // ---------------------------------------------------------------- view state
 function setMode(m) {
   if ((m === 'multi' || m === 'delta') && !S.multi) { toast('Run a multiverse shock first (left panel).', 'info'); m = 'prime'; }
-  if ((m === 'spread' && !S.spread) || (m === 'chance' && !S.chance)) m = 'prime';
+  if (m === 'chance' && !S.chance) { S.wantChance = true; return runEnsemble(); }   // first click runs the ensemble, then shows the chance map
+  if (m === 'spread' && !S.spread) m = 'prime';
   if (m === 'truth' && LAYERS[S.layer].ml) { toast('ML risk is a forecast product — showing observed temperature.', 'info'); setLayer('t2m', true); }
   S.mode = m; for (const b of $('modeSeg').children) b.classList.toggle('on', b.dataset.mode === m);
   const [lo, hi, unit] = paintLegend($('legend'), m === 'chance' ? 'hrc' : S.layer, m === 'delta' ? 'delta' : m === 'spread' ? 'spread' : 'abs');
