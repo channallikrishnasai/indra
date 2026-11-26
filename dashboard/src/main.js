@@ -293,8 +293,12 @@ async function loadWindow(i) {
   S.risk.prime = await riskFor(S.prime); renderRisk(); renderTelemetry(); computeAlerts(); if (LAYERS[S.layer].ml) repaint();
 }
 
+// several shocks: their physical changes are added together (a linear approximation; one /simulate call)
 async function runMultiverse() {
-  const sh = currentShock(), last = S.init.subarray(2 * DAY, 3 * DAY), { delta, touched } = buildPerturbation(sh, last);
+  const shocks = S.shockList.length ? S.shockList : [currentShock()], last = S.init.subarray(2 * DAY, 3 * DAY);
+  const delta = new Float32Array(DAY); let touched = 0;
+  for (const sh of shocks) { const r = buildPerturbation(sh, last); touched += r.touched; r.delta.forEach((v, k) => { delta[k] += v; }); }
+  const sh = { ...shocks[0], name: shocks.map(x => x.name).join(' + ') };
   if (!touched) return warnShock(true);
   setBusy(true, `branching universe: ${sh.name}…`);
   try { S.multi = await simulate(S.init, delta); S.shock = sh; } catch (e) { toast(e.message); setBusy(false); return; }
@@ -394,6 +398,10 @@ function warnShock(force) {
   const touches = sh.box || Math.hypot(sh.lat - cl, sh.lon - co) < sh.radius;
   w.hidden = touches; w.textContent = 'This shock lies outside the simulated domain (6–38°N, 65–101°E), so the twin cannot propagate it.';
   if (force && !touches) toast(w.textContent);
+}
+// the shock list: add the current settings, remove by clicking
+function renderShockList() {
+  $('shockList').innerHTML = S.shockList.length ? S.shockList.map((s, i) => `<button class="chip" data-i="${i}" title="remove">${s.name} ×</button>`).join('') : '<span class="hint">No extra shocks. Add one to combine them.</span>';
 }
 function play(on) { S.playing = on ?? !S.playing; $('playIcon').setAttribute('d', S.playing ? 'M6 4h4v16H6zM14 4h4v16h-4z' : 'M7 4v16l13-8z'); if (S.playing && S.day >= STEPS - 0.01) S.day = 0; }
 function stepDay(d) { play(false); S.day = Math.max(0, Math.min(STEPS, Math.round(S.day) + d)); $('dayRange').value = S.day; repaint(); updateTimelineLabels(); renderChart(); }
@@ -673,6 +681,9 @@ function initUI() {
   $('presets').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.preset = b.dataset.p; const p = PRESETS[S.preset]; if (!p.custom && !p.box) { $('shockLat').value = p.lat; $('shockLon').value = p.lon; $('shockRad').value = p.radius; $('shockVar').value = p.parts[0][0]; $('shockMag').value = p.parts[0][1]; } syncShockUI(); };
   $('shockVar').onchange = () => { $('shockMag').value = VARS[$('shockVar').value].def; S.preset = 'custom'; syncShockUI(); };
   for (const id of ['shockMag', 'shockRad', 'shockLat', 'shockLon']) $(id).oninput = () => { S.preset = 'custom'; syncShockUI(); };
+  S.shockList = []; renderShockList();
+  $('addShock').onclick = () => { S.shockList.push(currentShock()); renderShockList(); toast(`${S.shockList.length} shock(s) combined. Press Run multiverse.`, 'info'); };
+  $('shockList').onclick = e => { const i = e.target.dataset.i; if (i !== undefined) { S.shockList.splice(+i, 1); renderShockList(); } };
   $('runBtn').onclick = runMultiverse; $('ensBtn').onclick = runEnsemble;
   $('modeSeg').onclick = e => e.target.dataset.mode && setMode(e.target.dataset.mode);
   $('viewSeg').onclick = e => e.target.dataset.view && setView(e.target.dataset.view);

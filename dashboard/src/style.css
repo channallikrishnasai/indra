@@ -336,3 +336,8 @@ body.layout-focus #map3d .maplibregl-ctrl-top-right, body.layout-cinema #map3d .
 .ticks span:hover { color: var(--text); transform: translateY(-1px); }
 .ticks span.on { color: var(--accent); font-weight: 600; }
 @media (hover: none) { .card { transform: none; } }
+
+/* shock list */
+.shocklist { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 4px; min-height: 26px; align-items: center; }
+.shocklist .chip { border: 1px solid var(--warm); background: rgba(255,122,69,.12); border-radius: 999px; padding: 4px 9px; font-size: 11.5px; cursor: pointer; color: var(--text); }
+.shocklist .chip:hover { background: rgba(255,122,69,.25); }
