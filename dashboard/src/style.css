@@ -215,3 +215,14 @@ body.alerts-open .drawer { transform: none; opacity: 1; pointer-events: auto; }
 .citytab td { text-align: right; padding: 2.5px 4px; border-bottom: 1px solid color-mix(in srgb, var(--line) 50%, transparent); }
 .citytab tr.cur td { background: color-mix(in srgb, var(--accent) 16%, transparent); }
 .citytab .up { color: var(--warm); } .citytab .down { color: var(--accent); }
+
+/* Street 3D view */
+#map3d { position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity .7s var(--ease), filter .7s; filter: blur(6px); background: var(--mapbg); }
+body.view-street #map3d { opacity: 1; pointer-events: auto; filter: none; }
+body.view-street #globe { opacity: 0; pointer-events: none; }
+#map3d .maplibregl-ctrl-top-right { top: 74px; right: 352px; transition: right .7s var(--ease); }
+body.layout-focus #map3d .maplibregl-ctrl-top-right, body.layout-cinema #map3d .maplibregl-ctrl-top-right { right: 12px; }
+#map3d .maplibregl-ctrl-bottom-right { bottom: 98px; right: 352px; }
+.cityrow { display: flex; gap: 6px; }
+.cityrow select { flex: 1; }
+.ghost.slim { width: auto; margin: 0; padding: 0 10px; white-space: nowrap; font-size: 12px; }

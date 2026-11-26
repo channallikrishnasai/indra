@@ -1,6 +1,7 @@
 import { NC, NLAT, NLON, CELLS, LAYERS, LAT0, LON0, BBOX, TEX_W, TEX_H, CLOUD_W, CLOUD_H, idx, layerGrid, lerpDay, paintField, paintClouds, paintLegend, bilinear, inDomain } from './field.js';
 import { Globe } from './globe.js';
 import { Map2D, CITIES } from './map2d.js';
+import { Street3D } from './street3d.js';
 import { impacts, landMeanSeries, propagation } from './impact.js';
 import { generateAlerts, diffAlerts, ADVICE, SEVERITIES } from './alerts.js';
 
@@ -99,6 +100,7 @@ const cloudCanvas = Object.assign(document.createElement('canvas'), { width: CLO
 const tooltip = $('tooltip');
 const globe = new Globe($('globe'), { onHover: hover, onPick: pick });
 const map = new Map2D($('map2d'), { onHover: hover, onPick: pick, fieldCanvas, cloudCanvas });
+const street = new Street3D($('map3d'), fieldCanvas, { onHover: hover, onPick: pick });
 
 function pick(lat, lon) {
   if (!inDomain(lat, lon)) return toast(`(${lat.toFixed(1)}°, ${lon.toFixed(1)}°) is outside INDRA's simulated domain (6–38°N, 65–101°E).`);
@@ -334,8 +336,9 @@ function setLayer(k, quiet) {
   if (!quiet) { setMode(S.mode === 'truth' && LAYERS[k].ml ? 'prime' : S.mode); renderChart(); }
 }
 function setView(v) {
-  S.view = v; document.body.classList.toggle('view-map', v === 'map');
-  globe.active = v === 'globe'; map.active = v === 'map';
+  S.view = v; document.body.classList.toggle('view-map', v === 'map'); document.body.classList.toggle('view-street', v === 'street');
+  globe.active = v === 'globe'; map.active = v === 'map'; street.setActive(v === 'street');
+  if (v === 'street' && !street.map) street.ensure().then(() => { street.setActive(S.view === 'street'); const c = CITIES[$('citySel').value]; c ? street.flyToCity(c[1], c[2]) : street.overview(); });
   for (const b of $('viewSeg').children) b.classList.toggle('on', b.dataset.view === v);
   if (v === 'map' && !map.flown) { map.flown = true; map.flyTo(21, 82, 4.2); }
   fieldDirty = true;
@@ -492,7 +495,11 @@ function initUI() {
   $('themeBtn').onclick = e => setTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light', e);
   $('tourBtn').onclick = tour; $('snapBtn').onclick = snapshot;
   $('citySel').innerHTML = '<option value="">All India (land average)</option>' + CITIES.map((c, i) => `<option value="${i}">${c[0]}</option>`).join('');
-  $('citySel').onchange = () => { const c = CITIES[$('citySel').value]; renderCity(); if (c) S.view === 'globe' ? globe.flyTo(c[1], c[2], 1.9, 1.4) : map.flyTo(c[1], c[2], 8); };
+  $('citySel').onchange = () => { const c = CITIES[$('citySel').value]; renderCity(); if (!c) return S.view === 'street' && street.overview();
+    S.view === 'street' ? street.flyToCity(c[1], c[2]) : S.view === 'globe' ? globe.flyTo(c[1], c[2], 1.9, 1.4) : map.flyTo(c[1], c[2], 8); };
+  $('cityGo').onclick = () => { if (!$('citySel').value) { $('citySel').value = '1'; renderCity(); }                // default: Mumbai
+    const c = CITIES[$('citySel').value], fresh = !street.map; setView('street'); if (!fresh) street.flyToCity(c[1], c[2]); };
+  $('optSat').onchange = e => street.setSatellite(e.target.checked);
   $('alertsBtn').onclick = () => toggleAlerts(); $('alertsClose').onclick = () => toggleAlerts(false);
   for (const id of ['fState', 'fType', 'fStatus']) $(id).onchange = renderAlerts;
   $('playBtn').onclick = () => play();
@@ -504,7 +511,7 @@ function initUI() {
     const k = e.key;
     if (e.code === 'Space') { e.preventDefault(); play(); }
     else if (k === 'ArrowRight') stepDay(1); else if (k === 'ArrowLeft') stepDay(-1);
-    else if (k === 'g') setView('globe'); else if (k === 'm') setView('map');
+    else if (k === 'g') setView('globe'); else if (k === 'm') setView('map'); else if (k === 'z') setView('street');
     else if (k === 'd') setTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light');
     else if (k === 'f') setLayout(S.layout === 'focus' ? 'full' : 'focus'); else if (k === 'c') setLayout(S.layout === 'cinema' ? 'full' : 'cinema');
     else if (k === 'a') toggleAlerts(); else if (k === 't') tour(); else if (k === 's') snapshot(); else if (k === 'v') vb.click();

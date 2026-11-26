@@ -12,6 +12,7 @@
 <body class="layout-full">
   <div id="stage">
     <canvas id="globe"></canvas>
+    <div id="map3d"></div>
     <div id="map2d"><canvas id="mapBase"></canvas><canvas id="mapField"></canvas><canvas id="mapWind"></canvas><canvas id="mapUi"></canvas></div>
   </div>
 
@@ -23,6 +24,7 @@
     <div class="seg" id="viewSeg" role="tablist" aria-label="View">
       <button data-view="globe" class="on">3D Globe</button>
       <button data-view="map">2D Map</button>
+      <button data-view="street">Street 3D</button>
     </div>
     <div class="seg" id="modeSeg" role="tablist" aria-label="Universe">
       <button data-mode="prime" class="on">Timeline Prime</button>
@@ -49,6 +51,7 @@
           <label class="sw"><input type="checkbox" id="optBorders" checked /><i></i>Country borders</label>
           <label class="sw"><input type="checkbox" id="optCities" checked /><i></i>City labels (2D)</label>
           <label class="sw"><input type="checkbox" id="optRotate" /><i></i>Auto-rotate globe</label>
+          <label class="sw"><input type="checkbox" id="optSat" checked /><i></i>Satellite (Street 3D)</label>
           <h4>Playback speed</h4>
           <div class="seg full" id="speedSeg">
             <button data-speed="0.5">0.5×</button><button data-speed="1" class="on">1×</button><button data-speed="2">2×</button>
@@ -113,7 +116,7 @@
   <aside class="panel right glass">
     <section>
       <h3>City forecast <span class="muted small">from the live grid</span></h3>
-      <select id="citySel" aria-label="City"></select>
+      <div class="cityrow"><select id="citySel" aria-label="City"></select><button class="ghost slim" id="cityGo" title="Fly to street level in 3D">Street 3D ↗</button></div>
       <div class="cards citycards" id="cityCards"></div>
       <table class="citytab" id="cityTab"></table>
     </section>
@@ -172,7 +175,7 @@
   <div id="toast" hidden></div>
   <div id="help" class="glass" hidden>
     <h3>Shortcuts</h3>
-    <dl><dt>Space</dt><dd>Play / pause</dd><dt>← →</dt><dd>Previous / next day</dd><dt>g / m</dt><dd>3D globe / 2D map</dd>
+    <dl><dt>Space</dt><dd>Play / pause</dd><dt>← →</dt><dd>Previous / next day</dd><dt>g / m / z</dt><dd>3D globe / 2D map / Street 3D</dd><dt>a</dt><dd>Alerts</dd>
       <dt>1–4</dt><dd>Prime / Multiverse / Δ / Observed</dd><dt>d</dt><dd>Light / dark</dd><dt>f / c</dt><dd>Focus / cinema layout</dd>
       <dt>t</dt><dd>Guided tour</dd><dt>s</dt><dd>Snapshot</dd><dt>Shift+click</dt><dd>Move the shock</dd><dt>?</dt><dd>This help</dd></dl>
   </div>
