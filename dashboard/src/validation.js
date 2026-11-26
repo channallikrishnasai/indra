@@ -2,6 +2,8 @@
 // rolling_export.py). Hover a chart to read a day; click it to open the full-screen view with details.
 // The year replay steps through the recorded daily results at your speed, and pauses on demand.
 const YEARS = [2019, 2020, 2021];
+// 2019 and 2020: the recipe retrained on earlier years only. 2021: the shipped model (it used 2021 to choose some settings).
+const LABEL = { 2019: 'retrained recipe (trained to 2018)', 2020: 'retrained recipe (trained to 2019)', 2021: 'shipped model (2021 used for some settings)' };
 const $ = id => document.getElementById(id);
 let DATA = [], timer = null;
 
@@ -15,7 +17,7 @@ export async function openValidation() {
   el.innerHTML = `${closeBtn()}
     <h2>Rolling-origin validation <span class="muted small">the recipe retrained on earlier years only; validation, not hidden-test results</span></h2>
     <table class="audit"><tr><th>Year</th><th>Skill (mean)</th><th>Heavy-rain CSI d1</th><th>d4</th><th>d8</th></tr>
-      ${YEARS.map((y, i) => `<tr><td>${y}</td>${row(DATA[i])}</tr>`).join('')}</table>
+      ${YEARS.map((y, i) => `<tr><td>${y} <span class="muted small">${LABEL[y]}</span></td>${row(DATA[i])}</tr>`).join('')}</table>
     <p class="muted small">Skill = RMSE skill vs the better of persistence or climatology (1 perfect, 0 no better). CSI = heavy-rain (≥ 10 mm/day) hit score (1 perfect), the judge's definition.</p>
     <div class="vgrid">${DATA.map((g, i) => (g ? card(g, YEARS[i]) : `<div class="vchart"><b>${YEARS[i]}</b><p class="muted small">not exported</p></div>`)).join('')}</div>
     <div class="vreplay">
@@ -40,7 +42,7 @@ const row = g => g ? `<td>${g.skill_mean.toFixed(3)}</td><td>${g.leads.d1.csi.to
 
 function card(g, year) {
   return `<div class="vchart" data-year="${year}" title="Click for full-screen detail; hover the chart to read a day">
-    <b>${year}</b> <span class="muted small">${g.windows} windows · skill ${g.skill_mean.toFixed(2)}</span>
+    <b>${year}</b> <span class="muted small">${LABEL[year]} · ${g.windows} windows · skill ${g.skill_mean.toFixed(2)}</span>
     <svg viewBox="0 0 300 124" role="img" aria-label="Forecast vs observed land-mean rain ${year}">${paths(g.series, 300, 110)}</svg>
     <div class="vread muted small">hover a day</div></div>`;
 }

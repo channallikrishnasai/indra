@@ -130,6 +130,8 @@ npm run dev          # http://localhost:5173 (server expected on :8000)
 
 ## Results (held-out 2021, never used for training or calibration)
 
+Note: 2021 was never used to train the weights, but it was used to choose some settings (the rain-map strength and the calibration shrinkage), so the 2021 numbers below are optimistic. The 2019 and 2020 validation years, from retrained recipes, are the fairer check.
+
 ![Heavy-rain CSI at 10 mm/day, 2021, INDRA vs persistence vs climatology](docs/chart-csi-2021.png)
 
 ![Rolling-origin validation: skill and day-8 heavy-rain CSI for 2019, 2020 and 2021](docs/chart-validation.png)
