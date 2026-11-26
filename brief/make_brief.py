@@ -88,6 +88,9 @@ s += [P("4 · Failure modes and limits", h2)] + B([
     "<b>Heavy rain, IMD 64.5 mm/day (not scored):</b> CSI is 0.11 / 0.01 / 0.02 at days 1 / 4 / 8 on 2021, against persistence 0.09 / 0.00 / 0.00 and climatology 0 (climatology never reaches the threshold). Above day 1 the model is close to zero skill at this threshold.",
     "<b>Rolling-origin validation</b> (the recipe retrained, not the shipped model; each year scored by a model trained only on earlier years): 2019 (trained through 2018) skill mean 0.139, day-8 CSI 0.31; 2020 (trained through 2019) skill mean 0.137, day-8 CSI 0.29. 2021 (the shipped model, which used 2021 to pick some settings) skill mean 0.133, day-8 CSI 0.28. These are validation numbers, not hidden-test results.",
     "<b>Monsoon-stall shock spreads slowly and stays near its box:</b> on the 15 July 2021 start, response energy falls from 259 (day 1) to 117 (day 10), and the share inside the box falls from 0.62 to 0.29. It fails the propagation check.",
+    "<b>Resolution:</b> one cell is about 110 km (1° grid). There is no street-level weather, and the model covers India only.",
+    "<b>Alerts and impact indices are rule-based research thresholds</b> (IMD-style rain bands, a heat rule, a screening cyclone flag), not agency-tuned and not official warnings.",
+    "<b>2021-based choices:</b> some settings (the rain-map strength, the calibration shrinkage) were looked at with 2021 in view, so the 2021 score is optimistic. The 2019 and 2020 validation numbers are the fairer check.",
     "<b>Day-8 rain</b> is sharper (blur ratio 0.67) but slightly less accurate than repeat-yesterday. <b>Domain-bound:</b> remote drivers (ENSO, the Atlantic) enter only via the grid state.",
 ])
 s += [P("5 · System architecture", h2), arch()]
