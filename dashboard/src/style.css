@@ -365,3 +365,25 @@ body.layout-focus #map3d .maplibregl-ctrl-top-right, body.layout-cinema #map3d .
 #cloudBtn.on { background: color-mix(in srgb, var(--accent) 25%, transparent); }
 #reachSec input[type=range] { flex: 1; }
 #reachSec .small { font-size: 11px; color: var(--muted); }
+
+/* briefing close, header run info, source lines, offline note, narrow-screen note */
+.brief { padding-right: 36px; }
+.brief .bx { position: absolute; top: 6px; right: 8px; border: 0; background: none; font-size: 20px; line-height: 1; color: var(--muted); cursor: pointer; padding: 4px; }
+.brief .bx:hover { color: var(--text, #fff); }
+.brand small { display: block; font-size: 10px; color: var(--muted); letter-spacing: .02em; margin-top: 1px; white-space: nowrap; }
+.brand i { font-style: normal; }
+.srcline { margin: 10px 2px 2px; font-size: 10px; color: var(--muted); opacity: .85; }
+.offline { margin: 4px 0; padding: 10px 12px; border-radius: 10px; background: rgba(229, 72, 77, .12); border: 1px solid rgba(229, 72, 77, .35); font-size: 12px; line-height: 1.5; }
+.offline code { font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+#narrow { display: none; }
+@media (max-width: 900px) {
+  #narrow { display: block; position: fixed; left: 12px; right: 12px; top: 8px; z-index: 50; padding: 8px 12px; border-radius: 10px; background: rgba(232, 185, 35, .95); color: #1a1300; font-size: 12px; font-weight: 600; text-align: center; }
+}
+/* live cards are re-rendered every frame while playing: no entrance animation, or they stay invisible */
+.citycards .card { animation: none; }
+/* header: keep the team/run lines from pushing the buttons off screen */
+.brand div { max-width: 190px; min-width: 0; }
+.brand span, .brand small { display: block; overflow: hidden; text-overflow: ellipsis; }
+.brand b { line-height: 1.1; }
+.brand span, .brand small { line-height: 1.25; }
+.brand small.notoff { color: #f5b342; font-weight: 600; }

@@ -55,7 +55,8 @@ export function makeReport(r) {
   const footer = () => {
     for (let p = 1; p <= page; p++) {
       doc.setPage(p);
-      if (p > 1) { rule(H - 13, C.line, 0.2); T('INDRA · scenario report · Team Omnix', M, H - 8.5, { size: 7.4, color: C.mut }); }
+      if (p > 1) rule(H - 13, C.line, 0.2);
+      T(`INDRA · Team Omnix · commit ${r.commit || 'dev'} · Not an official IMD forecast`, M, H - 8.5, { size: 7.4, color: C.mut });
       T(`page ${p} of ${page}`, W - M, H - 8.5, { size: 7.4, color: C.mut, align: 'right' });
     }
   };
@@ -65,7 +66,8 @@ export function makeReport(r) {
   doc.setFillColor(...C.acc2); doc.rect(0, 78, W, 1.2, 'F');
   T('INDRA', M, 24, { size: 30, bold: true, color: [232, 239, 251] });
   T('Climate digital twin of India  ·  Scenario report', M, 33, { size: 11, color: [150, 172, 205] });
-  T(`Team Omnix · generated ${new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}`, M, 40, { size: 8.6, color: [120, 146, 182] });
+  T(`Team Omnix · DevForge Track 2 · ${r.tele?.model || 'INDRA-v1'} · generated ${new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}`, M, 40, { size: 8.6, color: [120, 146, 182] });
+  T(`${r.tour ? '' : `Start date ${r.win.date} · `}last run ${r.lastRun ? r.lastRun.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '-'} · NOT AN OFFICIAL IMD FORECAST`, M, 46, { size: 8.2, bold: true, color: [255, 190, 110] });
   T(r.tour ? `Guided tour: ${r.tour.length} events` : r.win.title, M, 58, { size: 16, bold: true, color: [240, 245, 255] });
   T(r.tour ? 'Every event, each from its own start date' : `Last input day ${r.win.date}  ·  ${r.win.desc}`, M, 66, { size: 9, color: [160, 182, 214], maxW: CW });
   y = 88;

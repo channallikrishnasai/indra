@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>INDRA Climate Twin</title>
+  <title>INDRA · Climate Digital Twin of India</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2307111f'/%3E%3Cpath d='M17 3 7 18h7l-3 11 14-17h-8l4-9z' fill='%2346d3ff'/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
@@ -20,7 +20,7 @@
   <header class="topbar glass">
     <div class="brand">
       <svg viewBox="0 0 32 32" class="logo" aria-hidden="true"><path d="M17 2 6 18h8l-3 12 15-18h-9l4-10z" /></svg>
-      <div><b>INDRA</b><span>Climate Digital Twin · India</span></div>
+      <div title="Team Omnix · Yugaantar DevForge Track 2 · Not an official IMD forecast"><b>INDRA</b><span>Team Omnix · Track 2 · <i id="modelVer">INDRA-v1</i></span><small id="runInfo">Start – · no run yet</small><small class="notoff">Not an official IMD forecast</small></div>
     </div>
     <div class="seg" id="viewSeg" role="tablist" aria-label="View">
       <button data-view="globe" class="on">3D Globe</button>
@@ -59,12 +59,15 @@
           </div>
         </div>
       </div>
-      <button class="icon" id="alertsBtn" title="Alerts & warnings (a)" aria-controls="alerts" aria-expanded="false">
+      <button class="icon" id="alertsBtn" title="Alerts &amp; warnings (a). IMD daily rain thresholds: heavy 64.5, very heavy 115.6, extremely heavy 204.5 mm/day. Heat: daily mean ≥ 35 °C, or ≥ 4.5 K above normal while ≥ 30 °C." aria-controls="alerts" aria-expanded="false">
         <svg viewBox="0 0 24 24"><path d="M12 2 1 21h22L12 2zm1 15h-2v-2h2v2zm0-4h-2V9h2v4z" /></svg><span>Alerts</span><b class="badge" id="alertsBadge" hidden>0</b>
       </button>
       <button class="icon" id="tourBtn" title="Guided tour of all events (t)"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-2 14.5v-9l7 4.5-7 4.5z" /></svg><span>Tour</span></button>
       <button class="icon round" id="reportBtn" title="Download scenario report PDF (r)" aria-label="Download scenario report">
         <svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm8 1.5V8h4.5L14 3.5zM11 10v5.2l-2.1-2.1-1.4 1.4L12 19l4.5-4.5-1.4-1.4-2.1 2.1V10h-2z" /></svg>
+      </button>
+      <button class="icon round" id="reloadBtn" title="Reload the dashboard" aria-label="Reload">
+        <svg viewBox="0 0 24 24"><path d="M17.65 6.35A8 8 0 1 0 19.73 14h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" /></svg>
       </button>
       <button class="icon round" id="aboutBtn" title="About the model (i)" aria-label="About the model">
         <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" /></svg>
@@ -126,8 +129,10 @@
         <button class="ghost" id="addShock">+ Add this shock to the list</button>
         <button class="primary" id="runBtn">Run multiverse</button>
         <button class="ghost" id="ensBtn">Run 5-member ensemble</button>
+        <button class="ghost" id="resetBtn" title="Clear all shocks and go back to Timeline Prime">Reset to baseline</button>
       </div>
     </section>
+    <p class="srcline"></p>
   </aside>
 
   <aside class="panel right glass">
@@ -172,6 +177,7 @@
       <h3>Engine telemetry</h3>
       <dl class="tele" id="tele"></dl>
     </section>
+    <p class="srcline"></p>
   </aside>
 
   <aside class="panel drawer glass" id="alerts" aria-label="Alerts and warnings">
@@ -206,6 +212,7 @@
   <div id="pins" aria-hidden="true"></div>
   <div id="tooltip" class="glass" hidden></div>
   <div id="toast" hidden></div>
+  <div id="narrow">Best viewed on a desktop screen (1280 px or wider).</div>
   <div id="about" hidden>
     <article class="glass" role="dialog" aria-modal="true" aria-labelledby="aboutTitle">
       <button class="x" id="aboutClose" aria-label="Close">×</button>

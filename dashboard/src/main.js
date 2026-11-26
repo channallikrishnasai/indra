@@ -13,6 +13,7 @@ const STEPS = 10, DAY = 6 * CELLS, STD = [13.46, 7.55, 2.9, 2.43, 619, 20.49];
 const $ = id => document.getElementById(id);
 const store = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* private mode */ } } };
 
+const COMMIT = typeof __COMMIT__ === 'string' ? __COMMIT__ : 'dev';   // set by vite.config.js at build time
 const S = {
   view: 'globe', mode: 'prime', layer: 't2m', layers: new Set(['t2m']), day: 0, playing: false, speed: 1,
   opts: { wind: true, clouds: true, rain: true, borders: true, cities: true },
@@ -187,8 +188,8 @@ function hover(h) {
 
 // ---------------------------------------------------------------- right panel
 const fmt = (v, d = 1) => Number.isFinite(v) ? v.toLocaleString('en-IN', { maximumFractionDigits: d, minimumFractionDigits: d }) : '–';
-function card(k, v, unit, color, deltaTxt, pct, wide) {
-  return `<div class="card${wide ? ' wide' : ''}" style="--c:${color}"><div class="k">${k}</div><div class="v">${v} <small>${unit}</small></div>${deltaTxt || ''}${pct != null ? `<div class="bar"><i style="width:${Math.max(2, Math.min(100, pct))}%"></i></div>` : ''}</div>`;
+function card(k, v, unit, color, deltaTxt, pct, wide, tip) {
+  return `<div class="card${wide ? ' wide' : ''}" style="--c:${color}"${tip ? ` title="${tip}"` : ''}><div class="k">${k}</div><div class="v">${v} <small>${unit}</small></div>${deltaTxt || ''}${pct != null ? `<div class="bar"><i style="width:${Math.max(2, Math.min(100, pct))}%"></i></div>` : ''}</div>`;
 }
 function dTxt(a, b, unit, d = 1) {
   if (b == null) return '';
@@ -205,7 +206,7 @@ function renderImpacts() {
     card('Rain vs normal', (P.rainDeparture > 0 ? '+' : '') + fmt(P.rainDeparture, 0), '%', '#46d3ff', dTxt(P.rainDeparture, M?.rainDeparture, ' pts', 0), 50 + P.rainDeparture / 2),
     card('Wind power 100 m', fmt(P.windPower, 0), 'W/m²', '#3ddc97', dTxt(P.windPower, M?.windPower, ' W/m²', 0), P.windPower / 4),
     card('Peak daily rain', fmt(P.peakRain, 0), 'mm', '#b23cff', dTxt(P.peakRain, M?.peakRain, ' mm', 0), P.peakRain / 3),
-    card('Ensemble confidence', ens ? fmt(ens.conf, 0) : '—', ens ? '%' : '', '#9c8fe0', ens ? `<div class="d">day-10 σ ${fmt(ens.sigma, 2)} ${LAYERS[ens.layer].unit} (${LAYERS[ens.layer].name.toLowerCase()})</div>` : `<div class="d">run the 5-member ensemble</div>`, ens?.conf, true),
+    card('Ensemble confidence', ens ? fmt(ens.conf, 0) : '—', ens ? '%' : '', '#9c8fe0', ens ? `<div class="d">day-10 σ ${fmt(ens.sigma, 2)} ${LAYERS[ens.layer].unit} (${LAYERS[ens.layer].name.toLowerCase()})</div>` : `<div class="d">run the 5-member ensemble</div>`, ens?.conf, true, 'Agreement among the 5 perturbed runs (spread), not a measure of accuracy.'),
   ].join('');
   renderRisk(); renderChart(); renderCity(); renderState(); renderTicker();
 }
@@ -288,7 +289,7 @@ async function loadWindow(i) {
     S.prime = prime; S.clim = clim.clim.map(c => Float32Array.from(c.flat(Infinity)));
     const zero = await simulate(S.init, new Float32Array(DAY));            // live determinism check: zero shock = no change
     S.nullDiff = Math.max(...zero.slice(1).map((d, k) => d.reduce((m, v, j) => Math.max(m, Math.abs(v - S.prime[k + 1][j]) / STD[Math.floor(j / CELLS)]), 0)));
-    setBusy(false, `${S.modelName} · ready`);
+    setBusy(false, `${S.modelName} · ready`); runInfo();
   } catch (e) { setBusy(false); status('server unreachable', 'err'); toast(`Cannot reach ${API}: ${e.message}. Start it with “python serve.py --port 8000”.`); return; }
   if (S.mode !== 'truth') setMode('prime');
   repaint(); renderImpacts(); renderTelemetry(); updateTimelineLabels();
@@ -338,7 +339,7 @@ function playReach() {
 // ---- live briefing: what happened, how risky, and pins on the three strongest changes
 const RISK_COL = { Low: '#4c8bf5', Moderate: '#e8b923', High: '#f08c2e', Critical: '#e5484d' };
 let pinEls = [];
-function showBrief(html) { $('brief').innerHTML = html; $('brief').hidden = false; }
+function showBrief(html) { $('brief').innerHTML = `<button class="x bx" aria-label="Close briefing">×</button>${html}`; $('brief').hidden = false; $('pins').hidden = false; }
 function briefing(sh) { showBrief(`<b>${sh.name}</b><span>Simulating the next 10 days…</span><div class="prog"><i></i></div>`); }
 function computeBrief() {
   if (!S.multi || !S.shock || !S.land) return null;
@@ -397,7 +398,7 @@ async function runMultiverse() {
   setBusy(true, `branching universe: ${sh.name}…`);
   briefing(sh);
   try { S.multi = await simulate(S.init, delta); S.shock = sh; S.brief = computeBrief(); renderBrief(S.brief); S.reach = computeReach(); renderReach(S.reach); } catch (e) { toast(e.message); setBusy(false); return; }
-  setBusy(false, `${S.modelName} · ready`);
+  setBusy(false, `${S.modelName} · ready`); runInfo();
   globe.setShock(sh); map.setShock(sh);
   if (S.view === 'globe' && !S.tour) globe.flyTo(sh.lat, sh.lon, 2.3, 1.6);
   setMode('delta'); S.day = 1; $('dayRange').value = 1;
@@ -755,6 +756,7 @@ async function downloadReport(tourLog = null) {
       city: { name: c ? c[0] : 'All India (land average)', rows: cp.slice(1).map((v, i) => [i + 1, v.t, v.r, v.w, cm && cm[i + 1].t - v.t, cm && cm[i + 1].r - v.r, cm && cm[i + 1].w - v.w]) },
       alerts: { counts, list: alerts }, prop: prop && { near: prop[0].nearFrac, r1: prop[0].radius, r10: prop[prop.length - 1].radius },
       tele: { model: S.modelName, ms: S.lastMs, zero: S.nullDiff },
+      commit: COMMIT, lastRun: S.lastRun,
       tour: tourLog?.length ? tourLog : null,
       state: S.state ? { name: S.state, ...stateStats(S.state, S.prime, S.clim, S.risk.prime, S.alertsPrime) } : null,
     });
@@ -828,7 +830,9 @@ function initUI() {
   S.shockList = []; renderShockList();
   $('addShock').onclick = () => { S.shockList.push(currentShock()); renderShockList(); toast(`${S.shockList.length} shock(s) combined. Press Run multiverse.`, 'info'); };
   $('shockList').onclick = e => { const i = e.target.dataset.i; if (i !== undefined) { S.shockList.splice(+i, 1); renderShockList(); } };
-  $('runBtn').onclick = runMultiverse; $('ensBtn').onclick = runEnsemble;
+  $('runBtn').onclick = runMultiverse; $('ensBtn').onclick = runEnsemble; $('resetBtn').onclick = resetBaseline;
+  $('reloadBtn').onclick = () => location.reload();
+  $('brief').onclick = e => { if (e.target.closest('.bx')) { $('brief').hidden = true; $('pins').hidden = true; } };
   $('modeSeg').onclick = e => e.target.dataset.mode && setMode(e.target.dataset.mode);
   $('viewSeg').onclick = e => e.target.dataset.view && setView(e.target.dataset.view);
   $('layoutSeg').onclick = e => e.target.dataset.layout && setLayout(e.target.dataset.layout);
@@ -906,6 +910,26 @@ function loop(now) {
   requestAnimationFrame(loop);
 }
 
+// header line: start date and time of the last run, always with the not-official note
+function runInfo() {
+  S.lastRun = new Date();
+  $('runInfo').textContent = `Start ${S.win.date} · last run ${S.lastRun.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`;
+}
+// server down: say so in the panels instead of leaving them blank
+function offline() {
+  const msg = `<p class="offline">The INDRA engine is not running at ${API}.<br>Start it with <code>python serve.py --port 8000</code>, then press Reload (top bar).</p>`;
+  for (const id of ['cards', 'cityCards', 'riskBars', 'tele']) $(id).innerHTML = msg;
+}
+// clear every shock and go back to Timeline Prime
+function resetBaseline() {
+  if (!S.prime) return;
+  S.shockList = []; renderShockList(); S.multi = null; S.shock = null; S.reach = null; S.risk.multi = null; S.alertsMulti = null; S.brief = null;
+  $('brief').hidden = true; $('pins').hidden = true; pinEls.forEach(e => e.remove()); pinEls = []; $('reachSec').hidden = true; map.setReach(null);
+  globe.setShock(null); map.setShock(null);
+  $('prop').innerHTML = ''; $('propNote').textContent = 'Run a multiverse shock to see how far it spreads each day.';
+  setMode('prime'); renderImpacts(); renderTelemetry(); renderRisk(); computeAlerts(); toast('Back to the baseline (Timeline Prime).', 'info');
+}
+
 async function boot() {
   const msg = t => $('loaderMsg').textContent = t;
   msg('Loading Earth & borders…');
@@ -923,7 +947,9 @@ async function boot() {
     const h = await post('/health'); S.modelName = h.model_name;
     const st = await post('/static'); S.land = Float32Array.from(st.land.flat());
     status(`${h.model_name} · ready`, 'ok');
-  } catch (e) { status('server offline', 'err'); toast(`INDRA engine not reachable at ${API}. Run “python serve.py --port 8000”, then reload.`); }
+  } catch (e) { status('server offline', 'err'); toast(`INDRA engine not reachable at ${API}. Run “python serve.py --port 8000”, then reload.`); offline(); }
+  $('modelVer').textContent = (S.modelName || 'INDRA-v1').split(' (')[0];
+  document.querySelectorAll('.srcline').forEach(e => (e.textContent = `Source: kit data 2005–2021 · ${S.modelName || 'INDRA-v1'} model · commit ${COMMIT}`));
   await Promise.race([globe.ready, new Promise(r => setTimeout(r, 4000))]);
   $('loader').classList.add('done'); globe.flyTo(21, 82, 2.5);
   if (S.modelName) await loadWindow(0);
