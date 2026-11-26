@@ -442,7 +442,7 @@ async function runEnsemble() {
   S.spreadSummary = { sigma, conf: 100 * Math.max(0, 1 - sigma / LAYERS[lay].dRange), layer: lay };
   if (lay !== S.layer) setLayer(lay);
   if (!$('modeSeg').querySelector('[data-mode=spread]')) { const b = document.createElement('button'); b.dataset.mode = 'spread'; b.textContent = 'Spread σ'; b.title = 'Ensemble spread: standard deviation among the 5 perturbed runs'; $('modeSeg').append(b); }
-  setBusy(false, `${S.modelName} · ready`); const want = S.wantChance ? 'chance' : 'spread'; S.wantChance = false; setMode(want); repaint(); renderImpacts();
+  setBusy(false, `${S.modelName} · ready`); const want = S.wantChance ? 'chance' : 'spread'; S.wantChance = false; setMode(want); repaint(); renderImpacts(); renderEnsWhat();
 }
 
 // ---------------------------------------------------------------- view state
@@ -455,11 +455,40 @@ function setMode(m) {
   const [lo, hi, unit] = paintLegend($('legend'), m === 'chance' ? 'hrc' : S.layer, m === 'delta' ? 'delta' : m === 'spread' ? 'spread' : 'abs');
   if (m === 'chance') $('layerNote').textContent = 'Heavy-rain chance: share of the 5 perturbed runs at or above 64.5 mm/day. It is a spread among perturbed runs, not a calibrated probability.';
   $('legLo').textContent = lo; $('legHi').textContent = hi; $('legUnit').textContent = unit;
-  repaint(); updateTimelineLabels(); renderRisk(); renderAlerts();
+  repaint(); updateTimelineLabels(); renderRisk(); renderAlerts(); renderEnsWhat();
   // the first time each ensemble view is opened after a run, show the audit log for it
   if ((m === 'chance' || m === 'spread') && S.spread && (S.auditSeen ||= {})[m] !== S.ensId) { S.auditSeen[m] = S.ensId; showEnsAudit(m); }
 }
 async function showEnsAudit(kind) { (await import('./ensaudit.js')).openEnsAudit(kind, S); }
+// left panel: what the ensemble changed, as numbers (rendered from the live ensemble, hidden until a run)
+function renderEnsWhat() {
+  const box = $('ensWhat'); if (!box) return;
+  if (!S.chance || !S.spread || !S.land) { box.hidden = true; return; }
+  let peakD = 1, peakN = -1, mx = 0;
+  for (let d = 1; d < S.chance.length; d++) {
+    let n = 0; for (let k = 0; k < CELLS; k++) { if (S.land[k] > 0.5 && S.chance[d][k] >= 60) n++; if (S.land[k] > 0.5) mx = Math.max(mx, S.chance[d][k]); }
+    if (n > peakN) { peakN = n; peakD = d; }
+  }
+  const sig = (d) => { let s = 0, n = 0; for (let k = 0; k < CELLS; k++) if (S.land[k] > 0.5) { s += S.spread[d][k]; n++; } return n ? s / n : 0; };
+  const last = S.spread.length - 1, s1 = sig(1), sL = sig(last), grow = sL / Math.max(s1, 1e-6);
+  const trend = grow >= 1.2 ? 'copies drift apart over 10 days' : grow <= 0.85 ? 'copies pull back together' : 'copies stay about equally spread';
+  let hot = [];
+  for (let d = 1; d < S.chance.length; d++) for (let k = 0; k < CELLS; k++) if (S.land[k] > 0.5 && S.chance[d][k] >= 60) hot.push(k);
+  const states = new Map();
+  for (const k of hot) { const st = stateAt(LAT0 + Math.floor(k / NLON), LON0 + (k % NLON)); if (st) states.set(st, (states.get(st) || 0) + 1); }
+  const top = [...states.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4).map(([n]) => n);
+  box.hidden = false;
+  box.innerHTML = `
+    <div class="ew-head"><b>What the ensemble changed</b><span>5 copies · day +${peakD} peak</span></div>
+    <div class="ew-grid">
+      <div><span>Cells ≥ 60%</span><b>${peakN}</b></div>
+      <div><span>Highest chance</span><b>${Math.round(mx)}%</b></div>
+      <div><span>σ day 1 → 10</span><b>${s1.toFixed(2)} → ${sL.toFixed(2)}</b></div>
+      <div><span>Agreement</span><b>${(100 * Math.max(0, 1 - sL / LAYERS[S.spreadSummary.layer].dRange)).toFixed(0)}%</b></div>
+    </div>
+    <p>${trend}. ${top.length ? `Heavy rain agreed (≥60%) in ${top.join(', ')}.` : 'No state reaches 60% agreement on heavy rain.'}</p>
+    <p class="muted small">Agreement is spread among perturbed runs, not accuracy.</p>`;
+}
 // weather layers can be overlaid (a set); ML risk layers are always shown alone
 function setLayer(k, quiet) {
   if (LAYERS[k].ml && !S.hasRisk) return toast('The ML risk model is not loaded on the server (run train_risk.py).');

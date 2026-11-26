@@ -96,6 +96,11 @@ export async function openEnsAudit(kind, S) {
         <div class="orbit" aria-hidden="true"><i class="core"></i>${[0, 1, 2, 3, 4].map(n => `<i class="m" style="--n:${n}"></i>`).join('')}</div>
         <div><span class="kick">Ensemble audit log · ${kind === 'chance' ? 'Rain chance' : 'Spread σ'}</span><h2>What just happened, step by step</h2></div>
       </header>
+      ${hasEns ? `<div class="ea-kpis">` +
+        `<div><span>Copies</span><b>5</b></div>` +
+        `<div><span>Peak day</span><b>+${chanceFindings(S).peak.d}</b></div>` +
+        `<div><span>Cells ≥ 60%</span><b>${chanceFindings(S).peak.likely}</b></div>` +
+        `<div><span>Spread day 1 → 10</span><b>${spreadFindings(S).d1.toFixed(2)} → ${spreadFindings(S).d10.toFixed(2)}</b></div></div>` : ''}
       <ol class="ea-log">${rows.join('')}</ol>
       <div class="ea-cards">
         <section class="ea-card" style="--i:${i++}"><h3>What is an ensemble?</h3>

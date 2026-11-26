@@ -479,3 +479,20 @@ table.audit td.up { color: var(--warm); } table.audit td.down { color: var(--acc
 .vstats span { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
 .vstats b { font-family: 'JetBrains Mono', monospace; font-size: 14px; }
 .vtable { max-height: 260px; overflow: auto; margin-top: 6px; }
+
+/* left panel: what the ensemble changed */
+.enswhat { margin: 10px 0 4px; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(111,195,255,.35); background: linear-gradient(160deg, rgba(61,139,255,.12), rgba(255,255,255,.02)); font-size: 12px; animation: pop .35s var(--ease); }
+.enswhat[hidden] { display: none; }
+.enswhat .ew-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+.enswhat .ew-head b { font-size: 12.5px; } .enswhat .ew-head span { color: var(--muted); font-size: 10.5px; }
+.enswhat .ew-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px; }
+.enswhat .ew-grid div { border: 1px solid var(--line); border-radius: 8px; padding: 5px 7px; }
+.enswhat .ew-grid span { display: block; font-size: 9.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.enswhat .ew-grid b { font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+.enswhat p { margin: 4px 0; line-height: 1.45; }
+/* audit log: KPI strip */
+.ea-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 14px 0 0; transform: translateZ(0); }
+.ea-kpis div { border-radius: 12px; padding: 9px 11px; background: rgba(111,195,255,.08); border: 1px solid rgba(111,195,255,.25); }
+.ea-kpis span { display: block; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: #8fb8e6; }
+.ea-kpis b { font: 600 17px 'JetBrains Mono', monospace; color: #eef4ff; }
+@media (max-width: 720px) { .ea-kpis { grid-template-columns: repeat(2, 1fr); } }
