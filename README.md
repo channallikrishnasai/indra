@@ -65,24 +65,24 @@ Scored with the organisers' own `monsoon_r1.scoring` on all 355 ten-day windows 
 
 | Lead | t2m | tp | u10 | v10 | msl | tcwv | **Mean** | vs repeat-yesterday | vs climatology |
 |---|---|---|---|---|---|---|---|---|---|
-| Day 1 | 0.206 | 0.265 | 0.255 | 0.302 | 0.325 | 0.296 | **0.275** | 0.275 | 0.491 |
-| Day 4 | 0.143 | 0.056 | 0.107 | 0.093 | 0.099 | 0.173 | **0.112** | 0.280 | 0.112 |
-| Day 8 | 0.050 | 0.019 | 0.018 | 0.014 | 0.024 | 0.039 | **0.027** | 0.277 | 0.027 |
+| Day 1 | 0.205 | 0.271 | 0.256 | 0.303 | 0.328 | 0.297 | **0.277** | 0.277 | 0.493 |
+| Day 4 | 0.142 | 0.059 | 0.109 | 0.099 | 0.104 | 0.174 | **0.115** | 0.283 | 0.115 |
+| Day 8 | 0.046 | 0.021 | 0.015 | 0.013 | 0.026 | 0.038 | **0.026** | 0.277 | 0.026 |
 
-INDRA beats both baselines on every channel at every lead. The mean skill over days 1/4/8 is 0.138, above the 0.12 needed for full RMSE points.
+INDRA beats both baselines on every channel at every lead. The mean skill over days 1/4/8 is 0.139, above the 0.12 needed for full RMSE points.
 
 **Heavy-rain hits** (CSI at 10 mm/day; 1 = perfect, 0 = no hits):
 
 | Lead | INDRA | Repeat-yesterday | Climatology |
 |---|---|---|---|
-| Day 1 | **0.50** | 0.43 | 0.26 |
-| Day 4 | **0.26** | 0.21 | 0.26 |
+| Day 1 | **0.51** | 0.43 | 0.26 |
+| Day 4 | **0.27** | 0.21 | 0.26 |
 | Day 8 | **0.25** | 0.20 | 0.26 |
 
 Clear skill at day 1. At days 4 and 8 INDRA beats repeat-yesterday but only ties climatology.
 
 **No blur** (day-8 spatial variance ÷ real variance; the judge wants 0.40–2.5):
-t2m 1.01 · tp 0.43 · u10 0.74 · v10 0.76 · msl 0.88 · tcwv 0.90. All pass; rain is closest to the 0.40 floor.
+t2m 1.01 · tp 0.42 · u10 0.75 · v10 0.78 · msl 0.89 · tcwv 0.90. All pass; rain is closest to the 0.40 floor.
 
 **Shocks** (2021-07-15 window, judge definitions):
 
@@ -98,9 +98,9 @@ t2m 1.01 · tp 0.43 · u10 0.74 · v10 0.76 · msl 0.88 · tcwv 0.90. All pass; 
 
 **INDRA-Risk** (held-out 2021 ROC-AUC, where 0.5 = guessing and 1 = perfect): heavy rain ≥ 64.5 mm/day **0.90**, heat stress **0.99**.
 
-**Estimated automatic score:** forecast 35.9 / 45 (RMSE 30.0, heavy rain 5.9) · anti-blur 10 / 10 · causality 13.1 / 15 · repo 15 / 15 → **≈ 74 / 85** before the brief. These numbers come from 2021; the judge uses unseen 2023–24 windows.
+**Estimated automatic score:** forecast 36.7 / 45 (RMSE 30.0, heavy rain 6.7) · anti-blur 10 / 10 · causality 13.1 / 15 · repo 15 / 15 → **≈ 75 / 85** before the brief. These numbers come from 2021; the judge uses unseen 2023–24 windows.
 
-**Known weaknesses:** heavy-rain skill fades after day 1. The monsoon-stall response stays near the Arabian Sea instead of spreading outward by days 4–8. Rain detail at day 8 (0.43) is just above the 0.40 blur floor.
+**Known weaknesses:** heavy-rain skill fades after day 1. The monsoon-stall response stays near the Arabian Sea instead of spreading outward by days 4–8. Rain detail at day 8 (0.42) is just above the 0.40 blur floor.
 
 ## Model design (summary)
 
