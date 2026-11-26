@@ -5,3 +5,4 @@ dashboard/dist/
 *.log
 dashboard/public/windows.bin
 dashboard/public/windows.json
+private/
