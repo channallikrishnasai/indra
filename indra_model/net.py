@@ -151,6 +151,8 @@ class Indra(nn.Module):
             out = calib(F(x)) + (F(x + d) - F(x))
         so skill-calibration never mutes a shock, and a zero shock is bit-identical to Prime."""
         doy = torch.tensor([float(doy_last)])
+        if perturbation is not None and not np.any(perturbation):
+            perturbation = None       # zero shock -> exactly the Prime path (no batch/unit round trip)
         phys = lambda z: to_physical((z * self.std[None] + self.mean[None]).numpy())[0]
         if perturbation is None:
             return phys(self.calibrated(self.rollout_z(self._z(init_phys[None]), doy, steps), doy))
