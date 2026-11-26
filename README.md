@@ -117,7 +117,7 @@ python tools/make_windows.py --data data/india_climate_train.nc
 PYTHONPATH=path/to/yug-monsoon-kit python evaluate.py --year 2021
 ```
 
-Training takes about an hour on an 8-thread CPU.
+Training takes about 1.5 hours on an 8-thread CPU.
 
 ## Limits (honest)
 
