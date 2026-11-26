@@ -6,7 +6,7 @@ const $ = id => document.getElementById(id);
 
 export async function openValidation() {
   const el = $('validation'); el.hidden = false;
-  el.innerHTML = `<button class="x" id="valClose" aria-label="Close validation">×</button><h2>Rolling-origin validation <span class="muted small">each year scored by a model that has not seen it</span></h2><p class="muted small">Loading…</p>`;
+  el.innerHTML = `<button class="x" id="valClose" aria-label="Close validation">×</button><h2>Rolling-origin validation <span class="muted small">the recipe retrained on earlier years only; validation, not hidden-test results</span></h2><p class="muted small">Loading…</p>`;
   $('valClose').onclick = () => (el.hidden = true);
   const got = await Promise.all(YEARS.map(y => fetch(`/validation/${y}.json`).then(r => (r.ok ? r.json() : null)).catch(() => null)));
   if (got.every(g => !g)) {
