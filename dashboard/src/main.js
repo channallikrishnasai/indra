@@ -638,7 +638,7 @@ function renderAlerts() {
   const multi = S.alertsMulti && (S.mode === 'multi' || S.mode === 'delta'), all = multi ? S.alertsMulti : S.alertsPrime;
   const urgent = all.filter(a => a.severity === 'Critical' || a.severity === 'High').length, b = $('alertsBadge');
   b.hidden = !all.length; b.textContent = all.length; b.classList.toggle('calm', !urgent);
-  $('alertsSrc').textContent = multi ? `· ${S.shock.name} universe` : '· Timeline Prime';
+  $('alertsSrc').textContent = multi ? `· ${S.shock.name} universe` : (S.mode === 'spread' || S.mode === 'chance') ? '· Timeline Prime · ensemble view' : '· Timeline Prime';
   $('fStatusWrap').hidden = !multi; if (!multi) $('fStatus').value = '';
   const states = [...new Set(all.map(a => a.region))].sort(), cur = $('fState').value;
   $('fState').innerHTML = `<option value="">All (${states.length})</option>` + states.map(r => `<option${r === cur ? ' selected' : ''}>${r}</option>`).join('');
@@ -910,7 +910,7 @@ function initUI() {
     else if (k === 'd') setTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light');
     else if (k === 'f') setLayout(S.layout === 'focus' ? 'full' : 'focus'); else if (k === 'c') setLayout(S.layout === 'cinema' ? 'full' : 'cinema');
     else if (k === 'a') toggleAlerts(); else if (k === 'r') downloadReport(); else if (k === 'i') toggleAbout(); else if (k === 't') tour(); else if (k === 's') snapshot(); else if (k === 'v') vb.click();
-    else if (k === '?') $('help').hidden = !$('help').hidden; else if (k === 'Escape') { $('help').hidden = true; menu.hidden = true; toggleAbout(false); $('ensAudit').hidden = true; }
+    else if (k === '?') $('help').hidden = !$('help').hidden; else if (k === 'Escape') { $('help').hidden = true; menu.hidden = true; toggleAbout(false); $('ensAudit').hidden = true; $('validation').hidden = true; if ($('vDetail')) $('vDetail').hidden = true; }
     else if ('1234'.includes(k)) setMode(['prime', 'multi', 'delta', 'truth'][+k - 1]);
   });
   setTheme(document.documentElement.dataset.theme || 'dark');

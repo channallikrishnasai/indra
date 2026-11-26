@@ -460,3 +460,22 @@ table.audit td.up { color: var(--warm); } table.audit td.down { color: var(--acc
 .ea-card .mute, .lg .mute { color: #8a99b4; }
 .ea-val { margin: 4px 0 8px; padding-left: 18px; font: 12px/1.6 'JetBrains Mono', monospace; color: #cfe3ff; }
 @media (prefers-reduced-motion: reduce) { .orbit, .ea-stage, .lg, .ea-card, #ensAudit.in { animation: none !important; opacity: 1 !important; transform: none !important; } }
+
+/* validation: hover, full-screen detail, replay */
+.vchart { cursor: pointer; transition: transform .18s var(--ease), box-shadow .18s; } .vchart:hover { transform: translateY(-2px); box-shadow: 0 10px 24px -12px rgba(70,160,255,.6); }
+.vread { min-height: 14px; margin-top: 4px; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; }
+.vreplay { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 12px; }
+.vreplay input[type=range] { flex: 1 1 220px; min-width: 160px; }
+.vfoot { margin-top: 8px; }
+#vDetail { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; background: rgba(4,10,20,.7); backdrop-filter: blur(6px); }
+#vDetail[hidden] { display: none; }
+.vfull { position: relative; width: min(960px, 96vw); max-height: 92vh; overflow: auto; padding: 16px 18px; border-radius: 16px; border: 1px solid rgba(120,170,255,.3); background: linear-gradient(160deg, rgba(20,34,60,.96), rgba(10,18,34,.97)); animation: pop .3s var(--ease); }
+.vfull h3 { margin: 0 0 10px; font-size: 17px; }
+.vfull .x { position: absolute; top: 10px; right: 14px; z-index: 2; border: 0; background: none; font-size: 24px; color: var(--muted); cursor: pointer; }
+.vbig svg { width: 100%; height: auto; display: block; }
+.vbig #vBigRead { min-height: 16px; margin: 6px 0 10px; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+.vstats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin: 10px 0; }
+.vstats div { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; }
+.vstats span { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.vstats b { font-family: 'JetBrains Mono', monospace; font-size: 14px; }
+.vtable { max-height: 260px; overflow: auto; margin-top: 6px; }
