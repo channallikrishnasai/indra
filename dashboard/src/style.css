@@ -293,3 +293,23 @@ body.layout-focus #map3d .maplibregl-ctrl-top-right, body.layout-cinema #map3d .
 .statesec #stateTitle b { color: var(--text); }
 .statesec.pulse .citycards { animation: pulseIn .6s var(--ease); }
 @keyframes pulseIn { from { opacity: .2; transform: translateY(6px); } }
+
+/* live data ticker above the timeline */
+.ticker { position: fixed; left: 12px; right: 12px; bottom: 100px; height: 26px; overflow: hidden; border-radius: 9px; z-index: 4;
+  background: linear-gradient(90deg, var(--glass), transparent 12%, transparent 88%, var(--glass)); }
+.ticker .track { display: inline-flex; gap: 34px; white-space: nowrap; padding-top: 5px; font: 500 11.5px 'JetBrains Mono', monospace; color: var(--muted);
+  animation: scroll 46s linear infinite; will-change: transform; }
+.ticker b { color: var(--text); font-weight: 600; }
+.ticker i { font-style: normal; color: var(--accent); }
+@keyframes scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.ticker:hover .track { animation-play-state: paused; }
+
+/* tour captions */
+#caption { display: grid; gap: 4px; min-width: 360px; }
+#caption b { font-size: 18px; letter-spacing: -.01em; }
+#caption .nums { display: flex; gap: 22px; justify-content: center; margin-top: 6px; font-variant-numeric: tabular-nums; }
+#caption .nums div { font-size: 22px; font-weight: 700; } #caption .nums small { display: block; font-size: 10.5px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+#caption .prog { height: 3px; border-radius: 2px; background: var(--chip); overflow: hidden; margin-top: 8px; }
+#caption .prog i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent2), var(--accent)); transition: width .9s linear; }
+#caption.swap > * { animation: rise2 .5s var(--ease) both; }
+.ticker .sep { color: var(--accent2); }

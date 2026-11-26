@@ -203,7 +203,7 @@ function renderImpacts() {
     card('Peak daily rain', fmt(P.peakRain, 0), 'mm', '#b23cff', dTxt(P.peakRain, M?.peakRain, ' mm', 0), P.peakRain / 3),
     card('Ensemble confidence', ens ? fmt(ens.conf, 0) : '—', ens ? '%' : '', '#9c8fe0', ens ? `<div class="d">day-10 σ ${fmt(ens.sigma, 2)} ${LAYERS[ens.layer].unit} (${LAYERS[ens.layer].name.toLowerCase()})</div>` : `<div class="d">run the 5-member ensemble</div>`, ens?.conf, true),
   ].join('');
-  renderRisk(); renderChart(); renderCity(); renderState();
+  renderRisk(); renderChart(); renderCity(); renderState(); renderTicker();
 }
 
 function renderRisk() {
@@ -498,19 +498,53 @@ function toggleAlerts(on) {
 }
 
 // guided tour: every event, fly in, show the caption, play its 10 days, move on (any click on Tour stops it)
+// count a number up from 0 (tour captions); respects reduced motion
+function countUp(el, to, dec = 0) {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return (el.textContent = to.toFixed(dec));
+  const t0 = performance.now();
+  const step = now => { const p = Math.min(1, (now - t0) / 900), e = 1 - Math.pow(1 - p, 3); el.textContent = (to * e).toFixed(dec); if (p < 1) requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+}
+function captionFor(w, id) {
+  const alerts = (S.alertsPrime || []).length, peakRain = S.prime ? Math.max(...S.prime.slice(1).map(a => Math.max(...a.subarray(CELLS, 2 * CELLS)))) : 0;
+  $('caption').innerHTML = `<b>${w.title}</b><span>${w.desc} · ${w.date}</span>
+    <div class="nums"><div><span data-n="alerts"></span><small>alerts</small></div><div><span data-n="rain"></span><small>peak rain mm</small></div></div>
+    <div class="prog"><i></i></div>`;
+  $('caption').classList.remove('swap'); void $('caption').offsetWidth; $('caption').classList.add('swap');
+  countUp($('caption').querySelector('[data-n=alerts]'), alerts); countUp($('caption').querySelector('[data-n=rain]'), peakRain);
+}
+
 async function tour() {
   if (S.tour) { S.tour = null; $('tourBtn').classList.remove('on'); $('caption').hidden = true; setLayout('full'); return; }
   const id = S.tour = {}; $('tourBtn').classList.add('on'); setLayout('cinema');
   for (let i = 0; i < S.windows.length && S.tour === id; i++) {
-    const w = S.windows[i]; $('caption').innerHTML = `<b>${w.title}</b><span>${w.desc} · ${w.date}</span>`; $('caption').hidden = false;
+    const w = S.windows[i]; $('caption').hidden = false; captionFor(w, id);
     setLayer(/flood|monsoon|Kerala|Konkan/i.test(w.title) ? 'tp' : /heat/i.test(w.title) ? 't2m' : /Cyclone/i.test(w.title) ? 'wind' : 't2m');
     await loadWindow(i); if (S.tour !== id) break;
+    captionFor(w, id);                                                    // numbers now come from this event's forecast
     if (S.view === 'globe') globe.flyTo(21 + (Math.random() - 0.5) * 6, 82 + (Math.random() - 0.5) * 10, 2.1 + Math.random() * 0.4, 3);
     setMode('prime'); S.day = 0; play(true);
-    await new Promise(r => { const t = setInterval(() => { if (!S.playing || S.tour !== id) { clearInterval(t); r(); } }, 200); });
+    await new Promise(r => { const t = setInterval(() => {
+      $('caption').querySelector('.prog i').style.width = `${Math.min(100, S.day / STEPS * 100)}%`;
+      if (!S.playing || S.tour !== id) { clearInterval(t); r(); }
+    }, 200); });
     await new Promise(r => setTimeout(r, 900));
   }
   if (S.tour === id) tour();
+}
+
+// live data ticker: city values and the headline numbers, scrolling above the timeline (duplicated for a seamless loop)
+function renderTicker() {
+  if (!S.prime || !S.clim) return;
+  const d = Math.max(1, Math.round(S.day)), P = S.alertsPrime || [], items = [
+    `<b>${S.win?.title || 'Forecast'}</b>`, `Day +${d}`,
+    `Alerts <b>${P.length}</b> (${P.filter(a => a.severity === 'High' || a.severity === 'Critical').length} High+)`,
+    ...CITIES.slice(0, 9).map((c, i) => { const v = cityValues(S.prime, c)[d]; return `${c[0]} <b>${v.t.toFixed(1)}°C</b> <i>${v.r.toFixed(1)} mm</i>`; }),
+  ];
+  if (S.multi) { const M = impacts(S.multi, S.clim, S.land), Pp = impacts(S.prime, S.clim, S.land); items.push(`${S.shock.name}: heatwave <b>${Pp.heatPeak.toFixed(1)}%→${M.heatPeak.toFixed(1)}%</b>`); }
+  items.push(`Engine <b>${S.lastMs ? S.lastMs.toFixed(0) : '–'} ms</b>`, `Zero-shock <b>${S.nullDiff == null ? '–' : S.nullDiff < 1e-3 ? 'passes' : 'check'}</b>`);
+  const one = items.map(x => `<span>${x}</span>`).join('<span class="sep">◆</span>');
+  $('tickerTrack').innerHTML = one + '<span class="sep">◆</span>' + one;
 }
 
 /** current view as an image (globe, 2D map or Street 3D) -> { data: dataURL, w, h } */
