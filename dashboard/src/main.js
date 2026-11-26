@@ -412,7 +412,7 @@ async function runMultiverse() {
 }
 
 async function runEnsemble() {
-  setBusy(true, 'running 5-member ensemble…');
+  setBusy(true, 'running 5-member ensemble…'); S.ensId = (S.ensId || 0) + 1;
   const sig = [0.4, 0.6, 0.35, 0.35, 40, 1.2]; const members = [];
   try {
     for (let m = 0; m < 5; m++) {
@@ -456,7 +456,10 @@ function setMode(m) {
   if (m === 'chance') $('layerNote').textContent = 'Heavy-rain chance: share of the 5 perturbed runs at or above 64.5 mm/day. It is a spread among perturbed runs, not a calibrated probability.';
   $('legLo').textContent = lo; $('legHi').textContent = hi; $('legUnit').textContent = unit;
   repaint(); updateTimelineLabels(); renderRisk(); renderAlerts();
+  // the first time each ensemble view is opened after a run, show the audit log for it
+  if ((m === 'chance' || m === 'spread') && S.spread && (S.auditSeen ||= {})[m] !== S.ensId) { S.auditSeen[m] = S.ensId; showEnsAudit(m); }
 }
+async function showEnsAudit(kind) { (await import('./ensaudit.js')).openEnsAudit(kind, S); }
 // weather layers can be overlaid (a set); ML risk layers are always shown alone
 function setLayer(k, quiet) {
   if (LAYERS[k].ml && !S.hasRisk) return toast('The ML risk model is not loaded on the server (run train_risk.py).');
@@ -842,7 +845,7 @@ function initUI() {
   S.shockList = []; renderShockList();
   $('addShock').onclick = () => { S.shockList.push(currentShock()); renderShockList(); toast(`${S.shockList.length} shock(s) combined. Press Run multiverse.`, 'info'); };
   $('shockList').onclick = e => { const i = e.target.dataset.i; if (i !== undefined) { S.shockList.splice(+i, 1); renderShockList(); } };
-  $('runBtn').onclick = runMultiverse; $('ensBtn').onclick = runEnsemble; $('resetBtn').onclick = resetBaseline;
+  $('runBtn').onclick = runMultiverse; $('ensBtn').onclick = runEnsemble; $('ensExplain').onclick = () => showEnsAudit(S.mode === 'spread' ? 'spread' : 'chance'); $('resetBtn').onclick = resetBaseline;
   $('reloadBtn').onclick = () => location.reload();
   $('auditBtn').onclick = () => showAudit('shock');
   $('valBtn').onclick = async () => (await import('./validation.js')).openValidation();
@@ -907,7 +910,7 @@ function initUI() {
     else if (k === 'd') setTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light');
     else if (k === 'f') setLayout(S.layout === 'focus' ? 'full' : 'focus'); else if (k === 'c') setLayout(S.layout === 'cinema' ? 'full' : 'cinema');
     else if (k === 'a') toggleAlerts(); else if (k === 'r') downloadReport(); else if (k === 'i') toggleAbout(); else if (k === 't') tour(); else if (k === 's') snapshot(); else if (k === 'v') vb.click();
-    else if (k === '?') $('help').hidden = !$('help').hidden; else if (k === 'Escape') { $('help').hidden = true; menu.hidden = true; toggleAbout(false); }
+    else if (k === '?') $('help').hidden = !$('help').hidden; else if (k === 'Escape') { $('help').hidden = true; menu.hidden = true; toggleAbout(false); $('ensAudit').hidden = true; }
     else if ('1234'.includes(k)) setMode(['prime', 'multi', 'delta', 'truth'][+k - 1]);
   });
   setTheme(document.documentElement.dataset.theme || 'dark');
