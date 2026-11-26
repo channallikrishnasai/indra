@@ -83,7 +83,7 @@ Heavy-rain CSI at **10 mm/day, the scored threshold** (the judge's definition):
 | Day 4 | **0.31** | 0.21 | 0.26 |
 | Day 8 | **0.28** | 0.20 | 0.26 |
 
-CSI is pooled over all windows and cells at each lead; the judge's 15 points use the mean of the per-lead CSI skill (`monsoon_r1.scoring`, `evaluate.py`). Day 8 is marginal, not failing: 0.02 above climatology.
+CSI is pooled over all windows and cells at each lead. The 15 points use the mean of the per-lead CSI skill. Source: the organisers' kit `yug-monsoon-kit` at commit `689c879` (v1.0.0), `monsoon_r1/scoring.py`: `csi`, `csi_skill`, `forecast_points`. The kit's `forecast_points` averages the lists it is given, and we pass one value per lead (days 1, 4, 8). The judge's exact call is not in the kit, so that step was matched by hand. Day 8 is marginal, not failing: 0.02 above climatology.
 
 **IMD heavy rain, 64.5 mm/day (not scored):** INDRA 0.11 / 0.01 / 0.02 at days 1 / 4 / 8; persistence 0.09 / 0.00 / 0.00; climatology 0 (it never reaches the threshold). Beyond day 1 the skill at this threshold is close to zero.
 
