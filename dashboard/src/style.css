@@ -343,3 +343,6 @@ body.layout-focus #map3d .maplibregl-ctrl-top-right, body.layout-cinema #map3d .
 .shocklist .chip:hover { background: rgba(255,122,69,.25); }
 .chips .allchip { border-style: dashed; color: var(--accent); }
 .chips .allchip.on { border-style: solid; background: color-mix(in srgb, var(--accent) 22%, transparent); }
+.tipbtn { margin-top: 8px; width: 100%; }
+.tip { margin: 8px 0 0; padding: 9px 11px; border-radius: 10px; border: 1px solid var(--line); background: var(--glass-hi); line-height: 1.45; font-size: 12.5px; }
+.tip b { color: var(--warm); }

@@ -449,6 +449,27 @@ function renderState() {
     card('ML heat chance', P.heatRisk == null ? '–' : P.heatRisk.toFixed(0), '% max', '#ff6a1a', null),
   ].join('');
 }
+// tipping point: the smallest warming of the Bay of Bengal (temperature only) that brings heavy rain to the chosen state
+async function tippingPoint() {
+  const name = S.state || 'Odisha'; if (!S.state) chooseState(name);
+  if (!S.init) return toast('Wait for the forecast to load first.', 'info');
+  const mask = stateMask(name), BOX = [8, 20, 82, 94], T = 64.5, last = S.init.subarray(2 * DAY, 3 * DAY);
+  const peak = out => { let m = 0; for (let d = 1; d <= STEPS; d++) for (let k = 0; k < CELLS; k++) if (mask[k] && out[d][CELLS + k] > m) m = out[d][CELLS + k]; return m; };
+  const rainAt = async dK => { if (!dK) return peak(S.prime); const { delta } = buildPerturbation({ box: BOX, parts: [['t2m', dK]] }, last); return peak(await simulate(S.init, delta)); };
+  setBusy(true, `searching the tipping point for ${name}…`);
+  const out = $('tipOut'); out.hidden = false; let msg;
+  try {
+    let lo = 0, hi = 8;
+    if (await rainAt(0) >= T) msg = `${name} already has heavy rain (≥ ${T} mm/day) in this forecast; no warming needed.`;
+    else if (await rainAt(hi) < T) msg = `${name} does not reach heavy rain even with +${hi} K over the Bay of Bengal (temperature only).`;
+    else {
+      for (let i = 0; i < 9; i++) { const mid = (lo + hi) / 2; if (await rainAt(mid) >= T) hi = mid; else lo = mid; }
+      msg = `Tipping point: about <b>+${hi.toFixed(2)} K</b> over the Bay of Bengal (temperature only) brings heavy rain (≥ ${T} mm/day) to ${name} within 10 days.`;
+    }
+  } catch (e) { msg = `Could not run the search: ${e.message}`; }
+  setBusy(false, `${S.modelName} · ready`);
+  out.innerHTML = msg;
+}
 function openStateStreet() {
   if (!S.state) return toast('Click a state first.', 'info');
   setView('street'); street.flyToState(S.state);
@@ -686,7 +707,7 @@ async function runCustomDate() {
 function initUI() {
   $('windowSel').innerHTML = S.windows.map((w, i) => `<option value="${i}">${w.title} · ${w.date}</option>`).join('');
   $('windowSel').onchange = e => loadWindow(+e.target.value);
-  $('layerChips').innerHTML = `<button data-l="all" class="allchip">All layers ▶</button>` + Object.entries(LAYERS).map(([k, L]) => `<button data-l="${k}" class="${k === S.layer ? 'on' : ''}${L.ml ? ' ml' : ''}">${L.name}</button>`).join('');
+  $('layerChips').innerHTML = `<button data-l="all" class="allchip">All layers ▶</button>` + Object.entries(LAYERS).map(([k, L]) => `<button data-l="${k}" class="${k === S.layer ? 'on' : ''}">${L.name}</button>`).join('');
   $('layerChips').onclick = e => { const k = e.target.dataset.l; if (!k) return; if (k === 'all') return cycleLayers(); stopCycle(); setLayer(k); };
   $('presets').innerHTML = Object.entries(PRESETS).map(([k, p]) => `<button data-p="${k}">${p.name}<small>${p.sub}</small></button>`).join('');
   $('presets').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.preset = b.dataset.p; const p = PRESETS[S.preset]; if (!p.custom && !p.box) { $('shockLat').value = p.lat; $('shockLon').value = p.lon; $('shockRad').value = p.radius; $('shockVar').value = p.parts[0][0]; $('shockMag').value = p.parts[0][1]; } syncShockUI(); };
@@ -722,7 +743,7 @@ function initUI() {
     const c = CITIES[$('citySel').value], fresh = !street.map; setView('street'); if (!fresh) street.flyToCity(c[1], c[2]); };
   $('optSat').onchange = e => street.setSatellite(e.target.checked);
   $('stateSel').onchange = e => e.target.value && chooseState(e.target.value);
-  $('stateGo').onclick = openStateStreet;
+  $('stateGo').onclick = openStateStreet; $('tipBtn').onclick = tippingPoint;
   $('customDate').oninput = customHint; $('customGo').onclick = runCustomDate; initCustomDate();
   $('alertsBtn').onclick = () => toggleAlerts(); $('alertsClose').onclick = () => toggleAlerts(false);
   for (const id of ['fState', 'fType', 'fStatus']) $(id).onchange = renderAlerts;
