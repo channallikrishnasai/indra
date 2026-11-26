@@ -35,7 +35,7 @@ export function makeReport(r) {
   const sh = r.shock ? `Shock: ${r.shock.name} at ${r.shock.lat.toFixed(1)}N ${r.shock.lon.toFixed(1)}E, radius ${r.shock.radius.toFixed(1)} deg (` +
     r.shock.parts.map(([v, m]) => `${v} ${m > 0 ? '+' : ''}${m}${v === 't2m' ? ' K' : v === 'msl' ? ' hPa' : v === 'tp' ? ' mm/day' : '%'}`).join(', ') + ')' : 'No shock applied: Timeline Prime only.';
   y += 1.5; y += text(sh, M, y, { bold: !!r.shock, maxW: CW });
-  y += text(`View when exported: ${r.mode} universe, day +${r.day}. Every number below comes from live POST /simulate output.`, M, y + 1, { size: 8.5, color: MUT, maxW: CW }) + 2;
+  y += text(`View when exported: ${r.mode} universe, day +${r.day}. Every number below comes from live POST /simulate output, except the Observed line (recorded weather).`, M, y + 1, { size: 8.5, color: MUT, maxW: CW }) + 2;
 
   if (r.image) {
     const h = CW * r.image.h / r.image.w; need(h + 4);

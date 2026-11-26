@@ -121,7 +121,7 @@ s += [P("8 · Integrity notes", h2)] + [P(t, small) for t in [
     "• The 366-day climatology in weights/indra.pt (and the rain climatology used for calibration) is an average of the training years 2005–2020, "
     "smoothed over 15 days, used as a model input. It is not stored weather.",
     "• The dashboard’s demo starting states are generated locally from the kit data at demo time and are not in the repo; the server never reads them.",
-    "• The dashboard needs <i>npm install</i> once with internet and its web font falls back offline; the offline grader runs only serve.py. No weather APIs anywhere.",
+    "• The dashboard needs <i>npm install</i> once with internet, and its optional Street 3D view loads map tiles (OpenFreeMap, AWS terrain, Esri imagery) while running; everything else runs offline, and the grader runs only serve.py. No weather APIs anywhere.",
 ]]
 
 out = HERE / "INDRA_brief.pdf"
