@@ -205,3 +205,13 @@ body.alerts-open .drawer { transform: none; opacity: 1; pointer-events: auto; }
 .alist summary { cursor: pointer; color: var(--accent); }
 .alist details ul { margin: 4px 0 0 16px; padding: 0; }
 .alist .empty { border: 0; background: none; cursor: default; color: var(--muted); animation: none; }
+
+/* city forecast */
+.citycards { grid-template-columns: repeat(3, 1fr); margin-top: 8px; }
+.citycards .v { font-size: 16px; }
+.citytab { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 11px; font-family: 'JetBrains Mono', monospace; }
+.citytab th { color: var(--muted); font: 600 10px Inter, sans-serif; text-align: right; padding: 3px 4px; border-bottom: 1px solid var(--line); }
+.citytab th:first-child, .citytab td:first-child { text-align: left; }
+.citytab td { text-align: right; padding: 2.5px 4px; border-bottom: 1px solid color-mix(in srgb, var(--line) 50%, transparent); }
+.citytab tr.cur td { background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.citytab .up { color: var(--warm); } .citytab .down { color: var(--accent); }

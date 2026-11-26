@@ -1,6 +1,6 @@
 import { NC, NLAT, NLON, CELLS, LAYERS, LAT0, LON0, BBOX, TEX_W, TEX_H, CLOUD_W, CLOUD_H, idx, layerGrid, lerpDay, paintField, paintClouds, paintLegend, bilinear, inDomain } from './field.js';
 import { Globe } from './globe.js';
-import { Map2D } from './map2d.js';
+import { Map2D, CITIES } from './map2d.js';
 import { impacts, landMeanSeries, propagation } from './impact.js';
 import { generateAlerts, diffAlerts, ADVICE, SEVERITIES } from './alerts.js';
 
@@ -142,6 +142,7 @@ function updateTimelineLabels() {
   if (!S.win) return;
   const d = Math.round(S.day), date = new Date(S.win.date); date.setDate(date.getDate() + d);
   $('dayLabel').textContent = d === 0 ? 'Day 0 · initial state' : `Day +${d}`;
+  renderCity();
   $('dateLabel').textContent = date.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) + (S.mode !== 'prime' && S.mode !== 'truth' && S.shock ? ` · ${S.shock.name}` : '');
 }
 
@@ -182,7 +183,7 @@ function renderImpacts() {
     card('Peak daily rain', fmt(P.peakRain, 0), 'mm', '#b23cff', dTxt(P.peakRain, M?.peakRain, ' mm', 0), P.peakRain / 3),
     card('Ensemble confidence', ens ? fmt(ens.conf, 0) : '—', ens ? '%' : '', '#9c8fe0', ens ? `<div class="d">day-10 σ ${fmt(ens.sigma, 2)} ${LAYERS[ens.layer].unit} (${LAYERS[ens.layer].name.toLowerCase()})</div>` : `<div class="d">run the 5-member ensemble</div>`, ens?.conf, true),
   ].join('');
-  renderRisk(); renderChart();
+  renderRisk(); renderChart(); renderCity();
 }
 
 function renderRisk() {
@@ -373,6 +374,27 @@ function play(on) { S.playing = on ?? !S.playing; $('playIcon').setAttribute('d'
 function stepDay(d) { play(false); S.day = Math.max(0, Math.min(STEPS, Math.round(S.day) + d)); $('dayRange').value = S.day; repaint(); updateTimelineLabels(); renderChart(); }
 const frameOpts = () => ({ ...S.opts });
 
+// ---------------------------------------------------------------- city forecast (Prime next to Multiverse)
+const CITY_VARS = [['t', 'Temp', '°C', 1, '#ff7a45'], ['r', 'Rain', 'mm', 1, '#46d3ff'], ['w', 'Wind', 'm/s', 1, '#3ddc97']];
+function cityValues(days, c) {
+  if (!days) return null;
+  if (!c) {                                                   // All India: area-weighted land mean
+    const [t, r, w] = [(a, k) => a[k] - 273.15, (a, k) => a[CELLS + k], (a, k) => Math.hypot(a[2 * CELLS + k], a[3 * CELLS + k])].map(f => landMeanSeries(days, S.land, f));
+    return days.map((_, d) => ({ t: t[d], r: r[d], w: w[d] }));
+  }
+  const gi = c[1] - LAT0, gj = c[2] - LON0, at = (a, ch) => bilinear(a.subarray(ch * CELLS, (ch + 1) * CELLS), gi, gj);
+  return days.map(a => ({ t: at(a, 0) - 273.15, r: Math.max(0, at(a, 1)), w: Math.hypot(at(a, 2), at(a, 3)) }));
+}
+function renderCity() {
+  if (!S.prime || !S.land) return;
+  const c = CITIES[$('citySel').value], P = cityValues(S.prime, c), M = S.multi && cityValues(S.multi, c), d = Math.max(1, Math.round(S.day));
+  const delta = (a, b, dig) => { if (b == null) return ''; const x = b - a; return Math.abs(x) < 10 ** -dig / 2 ? '' : `<span class="${x > 0 ? 'up' : 'down'}">${x > 0 ? '+' : ''}${x.toFixed(dig)}</span>`; };
+  $('cityCards').innerHTML = CITY_VARS.map(([k, n, u, dig, col]) => card(`${n} · day +${d}`, P[d][k].toFixed(dig), u, col,
+    M ? `<div class="d">multiverse ${delta(P[d][k], M[d][k], dig) || 'no change'}</div>` : '')).join('');
+  $('cityTab').innerHTML = `<tr><th>Day</th>${CITY_VARS.map(([, n, u]) => `<th>${n} ${u}</th>`).join('')}</tr>` +
+    P.slice(1).map((p, i) => `<tr class="${i + 1 === d ? 'cur' : ''}"><td>+${i + 1}</td>${CITY_VARS.map(([k, , , dig]) => `<td>${p[k].toFixed(dig)} ${M ? delta(p[k], M[i + 1][k], dig) : ''}</td>`).join('')}</tr>`).join('');
+}
+
 // ---------------------------------------------------------------- alerts & warnings (policy co-pilot)
 const SEV_COL = { Critical: '#e5484d', High: '#f08c2e', Moderate: '#e8b923', Low: '#4c8bf5' };
 const sevOn = new Set(SEVERITIES);
@@ -469,6 +491,8 @@ function initUI() {
   $('optRotate').onchange = e => { globe.autoRotate = e.target.checked || S.layout === 'cinema'; };
   $('themeBtn').onclick = e => setTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light', e);
   $('tourBtn').onclick = tour; $('snapBtn').onclick = snapshot;
+  $('citySel').innerHTML = '<option value="">All India (land average)</option>' + CITIES.map((c, i) => `<option value="${i}">${c[0]}</option>`).join('');
+  $('citySel').onchange = () => { const c = CITIES[$('citySel').value]; renderCity(); if (c) S.view === 'globe' ? globe.flyTo(c[1], c[2], 1.9, 1.4) : map.flyTo(c[1], c[2], 8); };
   $('alertsBtn').onclick = () => toggleAlerts(); $('alertsClose').onclick = () => toggleAlerts(false);
   for (const id of ['fState', 'fType', 'fStatus']) $(id).onchange = renderAlerts;
   $('playBtn').onclick = () => play();

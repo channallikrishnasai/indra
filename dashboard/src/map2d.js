@@ -5,7 +5,7 @@ import { select } from 'd3-selection';
 import { mesh } from 'topojson-client';
 import { BBOX, LAT0, LON0, bilinear, CELLS } from './field.js';
 
-const CITIES = [['New Delhi', 28.6, 77.2], ['Mumbai', 19.08, 72.88], ['Kolkata', 22.57, 88.36], ['Chennai', 13.08, 80.27],
+export const CITIES = [['New Delhi', 28.6, 77.2], ['Mumbai', 19.08, 72.88], ['Kolkata', 22.57, 88.36], ['Chennai', 13.08, 80.27],
   ['Bengaluru', 12.97, 77.59], ['Hyderabad', 17.39, 78.49], ['Ahmedabad', 23.02, 72.57], ['Jaipur', 26.91, 75.79],
   ['Lucknow', 26.85, 80.95], ['Bhubaneswar', 20.3, 85.82], ['Guwahati', 26.14, 91.74], ['Thiruvananthapuram', 8.52, 76.94]];
 const SEAS = [['ARABIAN SEA', 15, 64.5], ['BAY OF BENGAL', 15.5, 88.5], ['INDIAN OCEAN', 3, 80]];
