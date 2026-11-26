@@ -41,19 +41,6 @@ def doy_from_sincos(s: float, c: float) -> float:
     return (math.atan2(s, c) / (2 * math.pi) * 365.0) % 365.0
 
 
-DYN_CH = 2   # feats=True models: moisture convergence and low-pressure anomaly, from the state every step
-
-
-def add_static_feats(static: np.ndarray) -> np.ndarray:
-    """[2,H,W] (land/sea mask, orography m) -> [6,H,W]: + terrain slope, aspect (sin, cos), distance to coast (cells).
-    Computed from the static fields only, so it is the same for every request."""
-    from scipy.ndimage import distance_transform_edt
-    land = static[0] > 0.5; oro = static[1].astype("f8")
-    gy, gx = np.gradient(oro); ang = np.arctan2(gy, gx)
-    dist = distance_transform_edt(land) if land.any() and (~land).any() else np.zeros_like(oro)
-    return np.concatenate([static, np.hypot(gx, gy)[None], np.sin(ang)[None], np.cos(ang)[None], dist[None]]).astype("f4")
-
-
 class ResBlock(nn.Module):
     def __init__(self, w: int):
         super().__init__()
@@ -68,9 +55,9 @@ class ResBlock(nn.Module):
 class IndraNet(nn.Module):
     """Stem 3x3 + 3 residual blocks (2 x 3x3 each) + 1x1 head = receptive-field radius 7 cells per step."""
 
-    def __init__(self, width: int = 96, blocks: int = 3, in_ch: int = IN_CH):
+    def __init__(self, width: int = 96, blocks: int = 3):
         super().__init__()
-        self.stem = nn.Conv2d(in_ch, width, 3, padding=1, padding_mode="replicate")
+        self.stem = nn.Conv2d(IN_CH, width, 3, padding=1, padding_mode="replicate")
         self.blocks = nn.Sequential(*[ResBlock(width) for _ in range(blocks)])
         self.head = nn.Sequential(nn.GELU(), nn.Conv2d(width, width, 1), nn.GELU(), nn.Conv2d(width, NC, 1))
         nn.init.zeros_(self.head[-1].weight); nn.init.zeros_(self.head[-1].bias)
@@ -82,18 +69,14 @@ class IndraNet(nn.Module):
 class Indra(nn.Module):
     """Wraps IndraNet with normalisation buffers, static fields and climatology so rollout() is self-contained."""
 
-    def __init__(self, mean, std, static, clim, width=96, blocks=3, feats=False):
+    def __init__(self, mean, std, static, clim, width=96, blocks=3):
         super().__init__()
-        self.feats = feats                       # True: 4 extra physical features (terrain, coast, convergence, low)
-        if feats:
-            static = add_static_feats(np.asarray(static, dtype="f4"))
+        self.net = IndraNet(width, blocks)
         self.register_buffer("mean", torch.as_tensor(mean, dtype=torch.float32).view(1, NC, 1, 1))
         self.register_buffer("std", torch.as_tensor(std, dtype=torch.float32).view(1, NC, 1, 1))
         st = torch.as_tensor(static, dtype=torch.float32)
         st = (st - st.mean(dim=(1, 2), keepdim=True)) / (st.std(dim=(1, 2), keepdim=True) + 1e-6)
-        self.register_buffer("static", st[None])                                  # [1,2 or 6,H,W]
-        in_ch = 3 * NC + NC + st.shape[0] + 2 + 2 + (DYN_CH if feats else 0)
-        self.net = IndraNet(width, blocks, in_ch)
+        self.register_buffer("static", st[None])                                  # [1,2,H,W]
         self.register_buffer("clim", torch.as_tensor(clim, dtype=torch.float32))   # [366,6,H,W] transformed space
         la = torch.as_tensor((LAT - LAT.mean()) / LAT.std(), dtype=torch.float32)
         lo = torch.as_tensor((LON - LON.mean()) / LON.std(), dtype=torch.float32)
@@ -113,21 +96,10 @@ class Indra(nn.Module):
         x0, x1, x2 = z3[:, 0], z3[:, 1], z3[:, 2]
         ang = 2 * math.pi * doy_next / 365.0
         doyp = torch.stack([torch.sin(ang), torch.cos(ang)], 1).view(B, 2, 1, 1).expand(B, 2, NLAT, NLON)
-        extra = [self.dyn_feats(x2)] if self.feats else []
-        f = torch.cat([x2, x2 - x1, x1 - x0, self.clim_at(doy_next), self.static.expand(B, -1, -1, -1), *extra,
+        f = torch.cat([x2, x2 - x1, x1 - x0, self.clim_at(doy_next), self.static.expand(B, -1, -1, -1),
                        doyp, self.latlon.expand(B, -1, -1, -1)], 1)
         nxt = x2 + self.net(f)
         return self.constrain(nxt)
-
-    def dyn_feats(self, x2):
-        """Two features from the last normalised state [B,6,H,W]: moisture convergence (-div(u,v) x tcwv) and the
-        low-pressure anomaly (msl minus its 7x7 mean). Central differences, replicate edges. Normalised units."""
-        u, v, msl, q = x2[:, 2:3], x2[:, 3:4], x2[:, 4:5], x2[:, 5:6]
-        up = F.pad(u, (1, 1, 0, 0), mode="replicate"); dudx = (up[..., 2:] - up[..., :-2]) / 2
-        vp = F.pad(v, (0, 0, 1, 1), mode="replicate"); dvdy = (vp[:, :, 2:] - vp[:, :, :-2]) / 2
-        conv = -(dudx + dvdy) * q
-        anom = msl - F.avg_pool2d(F.pad(msl, (3, 3, 3, 3), mode="replicate"), 7, stride=1)
-        return torch.cat([conv, anom], 1)
 
     def constrain(self, z):
         """Hard physical limits, expressed in normalised space (rain/moisture >= 0, -40 C <= t2m <= +60 C)."""
@@ -146,7 +118,7 @@ class Indra(nn.Module):
     alpha = None     # [L,6] calibrated anomaly damping per lead (set by calibrate.py), None = raw model
     clim_tp = None   # [366,H,W] arithmetic-mean rain climatology (mm/day) for physical-space rain calibration
     alpha_tp = None  # [L] rain damping per lead, physical space
-    qmix = 1.0                    # strength of the rain mapping: one number, or a list with one value per lead (1..10)
+    qmix = 1.0                    # strength of the rain mapping
     qmap_pred = qmap_obs = None  # [10,201] rain quantiles of the model / of observations (calibrate_rain.py)
 
     def map_rain(self, x):
@@ -157,9 +129,7 @@ class Indra(nn.Module):
         for k in range(x.shape[0]):
             qp, qo = self.qmap_pred[min(k, 9)].numpy(), self.qmap_obs[min(k, 9)].numpy()
             mapped = np.interp(np.maximum(x[k, 1], 0.0), qp, qo)   # np.interp clamps above the top quantile
-            qm = self.qmix if isinstance(self.qmix, (list, tuple, np.ndarray)) else [self.qmix]
-            q = float(qm[min(k, len(qm) - 1)])
-            x[k, 1] = (1 - q) * x[k, 1] + q * mapped     # q = 1: full mapping, 0.5: halfway
+            x[k, 1] = (1 - self.qmix) * x[k, 1] + self.qmix * mapped     # qmix = 1: full mapping, 0.5: halfway
         return x
 
     def calibrated(self, out_z, doy_last):
@@ -212,13 +182,12 @@ class Indra(nn.Module):
 def load_indra(path) -> Indra:
     """Rebuild INDRA from a checkpoint written by train.py (+ alpha from calibrate.py, if present)."""
     ck = torch.load(path, map_location="cpu", weights_only=False)
-    feats = ck["state"]["static"].shape[1] == 6          # feature models store 6 static channels
-    m = Indra(ck["mean"], ck["std"], np.zeros((2, NLAT, NLON), "f4"), np.zeros((366, NC, NLAT, NLON), "f4"), width=ck["width"], feats=feats)
+    m = Indra(ck["mean"], ck["std"], np.zeros((2, NLAT, NLON), "f4"), np.zeros((366, NC, NLAT, NLON), "f4"), width=ck["width"])
     m.load_state_dict(ck["state"]); m.eval()
     if "alpha" in ck:
         m.alpha = torch.as_tensor(ck["alpha"], dtype=torch.float32)
     if "qmap_pred" in ck:
-        m.qmap_pred = ck["qmap_pred"].float(); m.qmap_obs = ck["qmap_obs"].float(); qv = ck.get("qmix", 1.0); m.qmix = [float(v) for v in qv] if isinstance(qv, (list, tuple)) else float(qv)
+        m.qmap_pred = ck["qmap_pred"].float(); m.qmap_obs = ck["qmap_obs"].float(); m.qmix = float(ck.get("qmix", 1.0))
     if "clim_tp" in ck:
         m.clim_tp = torch.as_tensor(ck["clim_tp"], dtype=torch.float32)
         m.alpha_tp = torch.as_tensor(ck["alpha_tp"], dtype=torch.float32)

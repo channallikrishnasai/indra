@@ -74,17 +74,19 @@ s += [P("2 · How we prevent drift and blur", h2)] + B([
     "<b>Multiverse</b> = calib(F(x)) + [F(x + shock) − F(x)], so calibration never mutes a shock.",
 ])
 s += [P("3 · Results on held-out 2021 (355 windows, organisers’ monsoon_r1.scoring)", h2),
-      table([["Lead", "t2m", "tp", "u10", "v10", "msl", "tcwv", "Mean skill", "CSI ≥ 10 mm/day (INDRA / persist / clim)"],
-             ["Day 1", ".205", ".276", ".256", ".303", ".328", ".297", "<b>.278</b>", "<b>.53</b> / .43 / .26"],
-             ["Day 4", ".142", ".036", ".109", ".099", ".104", ".174", "<b>.111</b>", "<b>.31</b> / .21 / .26"],
-             ["Day 8", ".046", "-.041", ".015", ".013", ".026", ".038", "<b>.016</b>", "<b>.28</b> / .20 / .26"]],
+      table([["Lead", "t2m", "tp", "u10", "v10", "msl", "tcwv", "Mean skill", "Heavy-rain CSI at 10 mm/day, the scored threshold (INDRA / persist / clim)"],
+             ["Day 1", ".205", ".276", ".257", ".304", ".328", ".297", "<b>.278</b>", "<b>.53</b> / .43 / .26"],
+             ["Day 4", ".141", ".035", ".109", ".099", ".105", ".174", "<b>.111</b>", "<b>.31</b> / .21 / .26"],
+             ["Day 8", ".044", "-.042", ".014", ".013", ".027", ".040", "<b>.016</b>", "<b>.28</b> / .20 / .26"]],
             [13 * mm, 12 * mm, 12 * mm, 12 * mm, 12 * mm, 12 * mm, 12 * mm, 19 * mm, 66 * mm]),
       Spacer(1, 1.5),
-      P("Skill = 1 − RMSE / RMSE of the better of repeat-yesterday and climatology: positive on every channel and lead except rain at day 8 (−0.042, slightly worse than repeat-yesterday). Day-8 variance ratio "
+      P("Skill = 1 − RMSE / RMSE of the better of repeat-yesterday and climatology, averaged per window (evaluate.py). The pooled aggregation used by the official scorer gives 0.139; both clear the 0.12 reference. Positive on every channel and lead except rain at day 8, where it is −0.042: rain at day 8 is worse than the better reference. Day-8 variance ratio "
         "0.67–1.01 (judge band 0.40–2.5). Warm-Bay shock passes all four causality checks (99% of day-1 response near the box). The zero shock is "
         "bit-identical. Schema validator 6/6, 0.09–0.16 s per 10-day call. Estimated automatic score ≈ 82 / 85 (full 2021 set).", small)]
 s += [P("4 · Failure modes and limits", h2)] + B([
-    "<b>Heavy rain:</b> a rain quantile map (fitted on 2015–2020) raised heavy-rain CSI from 6.7 to 13.6 points (of 15), at a small cost to rain accuracy at day 8. We kept the halfway strength.",
+    "<b>Heavy rain, scored threshold (10 mm/day):</b> CSI is 0.53 / 0.31 / 0.28 at days 1 / 4 / 8 against 0.20 for persistence and 0.26 for climatology at day 8. Day 8 is marginal, not failing: a 0.02 margin over climatology and 0.08 over persistence. The rain quantile map is half strength; full strength reaches CSI 15 but worsens RMSE.",
+    "<b>Heavy rain, IMD 64.5 mm/day (not scored):</b> CSI is 0.11 / 0.01 / 0.02 at days 1 / 4 / 8 on 2021, against persistence 0.09 / 0.00 / 0.00 and climatology 0 (climatology never reaches the threshold). Above day 1 the model is close to zero skill at this threshold.",
+    "<b>Rolling-origin validation</b> (the recipe retrained, not the shipped model; each year scored by a model trained only on earlier years): 2019 (trained through 2018) skill mean 0.139, day-8 CSI 0.31; 2020 (trained through 2019) skill mean 0.137, day-8 CSI 0.29. 2021 (the shipped model, which used 2021 to pick some settings) skill mean 0.133, day-8 CSI 0.28. These are validation numbers, not hidden-test results.",
     "<b>Monsoon-stall shock spreads slowly and stays near its box:</b> on the 15 July 2021 start, response energy falls from 259 (day 1) to 117 (day 10), and the share inside the box falls from 0.62 to 0.29. It fails the propagation check.",
     "<b>Day-8 rain</b> is sharper (blur ratio 0.67) but slightly less accurate than repeat-yesterday. <b>Domain-bound:</b> remote drivers (ENSO, the Atlantic) enter only via the grid state.",
 ])

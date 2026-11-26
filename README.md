@@ -75,13 +75,19 @@ INDRA beats both baselines on every channel at days 1 and 4, and on every channe
 
 **Heavy-rain hits** (CSI at 10 mm/day; 1 = perfect, 0 = no hits):
 
+Heavy-rain CSI at **10 mm/day, the scored threshold** (the judge's definition):
+
 | Lead | INDRA | Repeat-yesterday | Climatology |
 |---|---|---|---|
 | Day 1 | **0.53** | 0.43 | 0.26 |
 | Day 4 | **0.31** | 0.21 | 0.26 |
 | Day 8 | **0.28** | 0.20 | 0.26 |
 
-Clear skill at day 1. At days 4 and 8 INDRA beats repeat-yesterday but only ties climatology.
+CSI is pooled over all windows and cells at each lead; the judge's 15 points use the mean of the per-lead CSI skill (`monsoon_r1.scoring`, `evaluate.py`). Day 8 is marginal, not failing: 0.02 above climatology.
+
+**IMD heavy rain, 64.5 mm/day (not scored):** INDRA 0.11 / 0.01 / 0.02 at days 1 / 4 / 8; persistence 0.09 / 0.00 / 0.00; climatology 0 (it never reaches the threshold). Beyond day 1 the skill at this threshold is close to zero.
+
+Clear skill at day 1. At days 4 and 8 INDRA beats repeat-yesterday but only ties climatology. **Day-8 rain RMSE skill is −0.042** on 2021: rain at day 8 is worse than the better of repeat-yesterday or climatology. Do not treat the 10-day forecast as equally reliable at every lead.
 
 **No blur** (day-8 spatial variance ÷ real variance; the judge wants 0.40–2.5):
 t2m 1.01 · tp 0.67 · u10 0.75 · v10 0.78 · msl 0.89 · tcwv 0.90. All pass; rain is now well above the 0.40 floor.
@@ -100,7 +106,7 @@ t2m 1.01 · tp 0.67 · u10 0.75 · v10 0.78 · msl 0.89 · tcwv 0.90. All pass; 
 
 **INDRA-Risk** (held-out 2021 ROC-AUC, where 0.5 = guessing and 1 = perfect): heavy rain ≥ 64.5 mm/day **0.90**, heat stress **0.99**.
 
-**Estimated automatic score:** forecast 43.7 / 45 (RMSE 30.0, heavy rain 13.7) · anti-blur 10 / 10 · causality 13.1 / 15 · repo 15 / 15 → **≈ 82 / 85** before the brief. These numbers come from 2021; the judge uses unseen 2023–24 windows.
+**Estimated automatic score on 2021 (full run):** forecast 43.7 / 45 (RMSE 30.0, heavy rain 13.7) · anti-blur 10 / 10 · causality 13.1 / 15 · repo 15 / 15 → **≈ 82 / 85** before the brief. These numbers come from 2021; the judge uses unseen 2023–24 windows.
 
 **Known weaknesses:** heavy-rain skill fades after day 1. The monsoon-stall response stays near the Arabian Sea instead of spreading outward by days 4–8. Rain at day 8 is slightly less accurate than repeat-yesterday (skill −0.04), traded for the heavy-rain gain.
 
@@ -132,8 +138,10 @@ Training takes about 1.5 hours on an 8-thread CPU.
 
 * `tools/window_server.py` is a dashboard-only helper for picking a start date. It reads local data that is not in the repo, and the grader never runs it. `serve.py` never imports it.
 
+* **Leap-year day-of-year offset:** the day after 31 December of a leap year is one day out of phase in the sine/cosine input and the climatology index (the contract's period is 365, the climatology has 366 entries). Training shares this offset; it is reported, not corrected.
 * **Heavy-rain skill** fades after day 1; at day 8, rain is slightly less accurate than repeat-yesterday. Cause: errors compound over the 10-step rollout. A heavier-rain retrain was tried and rejected because it worsened day 8. Fix needs a different training objective, not a retune.
 * **Monsoon-stall shock** (Arabian Sea box, −40% wind, 15 July 2021 start): its response energy falls from 259 (day 1) to 117 (day 10) in standard-deviation units, and the share inside the shock box falls from 0.62 to 0.29. The energy-weighted distance grows from 999 km to 1434 km, so it spreads slowly and remains near the box. It fails the propagation check in the judge's causality test. Cause: the local model damps shocks over open sea. Not tuned to the checker.
+* **Validation, not hidden test:** 2019 (model trained through 2018) skill mean 0.139, day-8 CSI 0.31; 2020 (trained through 2019) skill mean 0.137, day-8 CSI 0.29. These are the recipe retrained on earlier years, not the shipped model. The shipped model used 2021 to pick some settings, so 2021 is optimistic. None of this is a hidden-test result.
 * **Resolution:** one cell is ~110 km (1° grid). No street-level weather. Fix needs finer input data.
 * **Impact indices and alerts** are simple research rules (IMD-style rain bands, a heat rule), not agency-tuned and not official warnings.
 * The physics core covers India's 32 × 36 grid only. The globe shows the whole world for context, but shocks far away (e.g. the Atlantic) cannot be simulated, and the UI says so.
