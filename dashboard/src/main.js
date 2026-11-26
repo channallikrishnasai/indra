@@ -707,6 +707,16 @@ function initUI() {
   $('dayRange').oninput = e => { S.day = +e.target.value; play(false); repaint(); updateTimelineLabels(); renderChart(); };
   $('ticks').innerHTML = Array.from({ length: STEPS + 1 }, (_, d) => `<span>${d === 0 ? 'init' : '+' + d}</span>`).join('');
   $('help').onclick = () => $('help').hidden = true;
+  // depth: panel cards tilt toward the pointer with a soft glare
+  document.addEventListener('pointermove', e => {
+    const c = e.target.closest?.('.card'); if (!c) return;
+    const r = c.getBoundingClientRect(), px = (e.clientX - r.left) / r.width, py = (e.clientY - r.top) / r.height;
+    c.style.setProperty('--ry', `${(px - 0.5) * 9}deg`); c.style.setProperty('--rx', `${(0.5 - py) * 7}deg`);
+    c.style.setProperty('--mx', `${px * 100}%`); c.style.setProperty('--my', `${py * 100}%`); c.style.setProperty('--glare', 1);
+  });
+  document.addEventListener('pointerout', e => { const c = e.target.closest?.('.card'); if (c && !c.contains(e.relatedTarget)) { c.style.setProperty('--rx', '0deg'); c.style.setProperty('--ry', '0deg'); c.style.setProperty('--glare', 0); } });
+  // timeline: click a day tick to jump there
+  $('ticks').onclick = e => { const i = [...$('ticks').children].indexOf(e.target.closest('span')); if (i < 0) return; play(false); S.day = i; $('dayRange').value = i; repaint(); updateTimelineLabels(); renderChart(); [...$('ticks').children].forEach((t, k) => t.classList.toggle('on', k === i)); };
   addEventListener('keydown', e => {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.ctrlKey || e.metaKey) return;
     const k = e.key;

@@ -317,3 +317,20 @@ body.layout-focus #map3d .maplibregl-ctrl-top-right, body.layout-cinema #map3d .
 #caption .actions button { padding: 7px 14px; border-radius: 10px; font-size: 12.5px; cursor: pointer; }
 #caption .actions .primary { color: #fff; border: 0; background: linear-gradient(135deg, #7c5cff, #46d3ff); box-shadow: 0 6px 20px rgba(124,92,255,.35); }
 #caption .actions .ghost { border: 1px solid var(--line); background: var(--chip); color: var(--text); }
+
+/* ---- depth and interaction ---- */
+.card, .tile, .steps li, .alist li { transform-style: preserve-3d; transition: transform .35s var(--ease), box-shadow .35s, border-color .35s; will-change: transform; }
+.card { transform: perspective(700px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); }
+.card::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: var(--glare, 0);
+  background: radial-gradient(220px circle at var(--mx, 50%) var(--my, 0%), rgba(255,255,255,.16), transparent 60%); transition: opacity .3s; }
+.card:hover { box-shadow: 0 14px 34px rgba(0,0,0,.35), 0 0 0 1px color-mix(in srgb, var(--c, var(--accent)) 55%, transparent); border-color: transparent; }
+.panel section { position: relative; }
+.glass::before { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(180deg, rgba(255,255,255,.07), transparent 40%); }
+.glass { position: relative; }
+.logo { animation: pulseGlow 3.2s ease-in-out infinite; }
+@keyframes pulseGlow { 50% { filter: drop-shadow(0 0 14px rgba(70,211,255,.9)); } }
+.ticks span { cursor: pointer; transition: color .2s, transform .2s; padding: 2px 4px; border-radius: 6px; }
+.ticks span:hover { color: var(--text); transform: translateY(-1px); }
+.ticks span.on { color: var(--accent); font-weight: 600; }
+@media (hover: none) { .card { transform: none; } }
