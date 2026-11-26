@@ -387,3 +387,5 @@ body.layout-focus #map3d .maplibregl-ctrl-top-right, body.layout-cinema #map3d .
 .brand b { line-height: 1.1; }
 .brand span, .brand small { line-height: 1.25; }
 .brand small.notoff { color: #f5b342; font-weight: 600; }
+@media (max-width: 1500px) { #modeSeg button, #viewSeg button { padding: 6px 8px; font-size: 12.5px; } }
+@media (max-width: 1500px) { .topbar { gap: 8px; } .tools { gap: 4px; } .icon, .icon.round { width: 32px; height: 32px; } .brand div { max-width: 170px; } }

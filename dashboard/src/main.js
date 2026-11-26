@@ -143,6 +143,8 @@ function repaint() {
   const t = S.day, L = LAYERS[S.layer]; let grid, weatherDay;
   if (S.mode === 'delta' && S.multi) {
     const a = gridFor('multi', t), b = gridFor('prime', t); grid = a && b && a.map((v, k) => v - b[k]); weatherDay = dayAt(S.multi, t);
+  } else if (S.mode === 'chance' && S.chance) {
+    grid = S.chance[Math.round(t)]; weatherDay = dayAt(S.prime, t);
   } else if (S.mode === 'spread' && S.spread) {
     grid = S.spread[Math.round(t)]; weatherDay = dayAt(S.prime, t);
   } else {
@@ -151,11 +153,11 @@ function repaint() {
   }
   if (!weatherDay) return;
   const ctx = fieldCanvas.getContext('2d'); ctx.clearRect(0, 0, TEX_W, TEX_H);
-  const overlay = !L.ml && S.mode !== 'delta' && S.mode !== 'spread' && S.layers.size > 1 && weatherDay;
+  const overlay = !L.ml && S.mode !== 'delta' && S.mode !== 'spread' && S.mode !== 'chance' && S.layers.size > 1 && weatherDay;
   if (overlay) {                                                  // several weather layers at once: composite each one
     for (const k of S.layers) { layerTmp.getContext('2d').clearRect(0, 0, TEX_W, TEX_H); paintField(layerTmp.getContext('2d'), layerGrid(weatherDay, k), { layer: k, mode: 'abs' }); ctx.drawImage(layerTmp, 0, 0); }
-  } else if (grid) paintField(ctx, grid, { layer: S.layer, mode: S.mode === 'delta' ? 'delta' : S.mode === 'spread' ? 'spread' : 'abs' });
-  const cc = cloudCanvas.getContext('2d'); cc.clearRect(0, 0, CLOUD_W, CLOUD_H); if (S.opts.clouds) paintClouds(cc, weatherDay, cloudT);
+  } else if (grid) paintField(ctx, grid, { layer: S.mode === 'chance' ? 'hrc' : S.layer, mode: S.mode === 'delta' ? 'delta' : S.mode === 'spread' ? 'spread' : 'abs' });
+  const cc = cloudCanvas.getContext('2d'); cc.clearRect(0, 0, CLOUD_W, CLOUD_H); if (S.opts.clouds && S.mode !== 'chance') paintClouds(cc, weatherDay, cloudT);   // clouds would hide the chance cells
   for (const [dst, from] of [[globe.fieldCanvas, fieldCanvas], [globe.cloudCanvas, cloudCanvas]]) { const g = dst.getContext('2d'); g.clearRect(0, 0, dst.width, dst.height); g.drawImage(from, 0, 0); }
   globe.field.tex.needsUpdate = true; globe.clouds.tex.needsUpdate = true;
   globe.setDay(weatherDay); map.setWind(weatherDay); street.setWeather(weatherDay); S.curGrid = grid; S.curDay = weatherDay;
@@ -181,7 +183,7 @@ function hover(h) {
   }
   const r = dayAt(S.risk[S.mode === 'multi' || S.mode === 'delta' ? 'multi' : 'prime'] || S.risk.prime, S.day);
   if (r) for (const [n, c] of [['Flood risk (ML)', 0], ['Heat risk (ML)', 1]]) rows.push(`<tr><td>${n}</td><td>${(bilinear(r.subarray(c * CELLS, (c + 1) * CELLS), gi, gj) * 100).toFixed(0)} %</td></tr>`);
-  const extra = (S.mode === 'delta' || S.mode === 'spread') && S.curGrid ? `<tr><td>${S.mode === 'delta' ? 'Δ shock' : 'Ensemble σ'}</td><td>${bilinear(S.curGrid, gi, gj).toFixed(2)} ${LAYERS[S.layer].unit}</td></tr>` : '';
+  const extra = S.mode === 'chance' && S.curGrid ? `<tr><td>Heavy-rain chance</td><td>${bilinear(S.curGrid, gi, gj).toFixed(0)} % of runs</td></tr>` : (S.mode === 'delta' || S.mode === 'spread') && S.curGrid ? `<tr><td>${S.mode === 'delta' ? 'Δ shock' : 'Ensemble σ'}</td><td>${bilinear(S.curGrid, gi, gj).toFixed(2)} ${LAYERS[S.layer].unit}</td></tr>` : '';
   tooltip.innerHTML = `<b>${h.lat.toFixed(1)}°N ${h.lon.toFixed(1)}°E</b><table>${rows.join('')}${extra}</table>`;
   tooltip.hidden = false; tooltip.style.left = Math.min(h.x + 16, innerWidth - 200) + 'px'; tooltip.style.top = Math.min(h.y + 16, innerHeight - 220) + 'px';
 }
@@ -281,7 +283,7 @@ async function loadWindow(i) {
   S.truth = Array.from({ length: STEPS + 1 }, (_, d) => W.slice(base + (2 + d) * DAY, base + (3 + d) * DAY));
   $('windowDesc').textContent = `${S.win.desc}. Last input day ${S.win.date}; the twin rolls forward 10 days.`;
   S.multi = null; S.spread = null; S.spreadSummary = null; S.nullDiff = null; S.shock = null; S.risk = { prime: null, multi: null };
-  $('modeSeg').querySelector('[data-mode=spread]')?.remove(); globe.setShock(null); map.setShock(null);
+  $('modeSeg').querySelector('[data-mode=spread]')?.remove(); $('modeSeg').querySelector('[data-mode=chance]')?.remove(); S.chance = null; globe.setShock(null); map.setShock(null);
   S.day = 0; $('dayRange').value = 0;
   setBusy(true, 'simulating Timeline Prime…');
   try {
@@ -429,20 +431,26 @@ async function runEnsemble() {
     for (let k = 0; k < CELLS; k++) { const mu = gs.reduce((a, g) => a + g[k], 0) / gs.length; out[k] = Math.sqrt(gs.reduce((a, g) => a + (g[k] - mu) ** 2, 0) / (gs.length - 1)); }
     return out;
   });
+  S.chance = Array.from({ length: STEPS + 1 }, (_, d) => {           // % of members with rain >= 64.5 mm/day (IMD heavy)
+    const out = new Float32Array(CELLS); for (const m of members) for (let k = 0; k < CELLS; k++) if (m[d][CELLS + k] >= 64.5) out[k] += 100 / members.length;
+    return out;
+  });
+  if (!$('modeSeg').querySelector('[data-mode=chance]')) { const b = document.createElement('button'); b.dataset.mode = 'chance'; b.textContent = 'Rain chance'; b.title = 'Share of the 5 perturbed runs with rain at or above 64.5 mm/day (IMD heavy). A spread among perturbed runs, not a calibrated probability.'; $('modeSeg').append(b); }
   const sigma = S.spread[STEPS].reduce((a, v) => a + v, 0) / CELLS;
   S.spreadSummary = { sigma, conf: 100 * Math.max(0, 1 - sigma / LAYERS[lay].dRange), layer: lay };
   if (lay !== S.layer) setLayer(lay);
-  if (!$('modeSeg').querySelector('[data-mode=spread]')) { const b = document.createElement('button'); b.dataset.mode = 'spread'; b.textContent = 'Ensemble σ'; $('modeSeg').append(b); }
+  if (!$('modeSeg').querySelector('[data-mode=spread]')) { const b = document.createElement('button'); b.dataset.mode = 'spread'; b.textContent = 'Spread σ'; b.title = 'Ensemble spread: standard deviation among the 5 perturbed runs'; $('modeSeg').append(b); }
   setBusy(false, `${S.modelName} · ready`); setMode('spread'); repaint(); renderImpacts();
 }
 
 // ---------------------------------------------------------------- view state
 function setMode(m) {
   if ((m === 'multi' || m === 'delta') && !S.multi) { toast('Run a multiverse shock first (left panel).', 'info'); m = 'prime'; }
-  if (m === 'spread' && !S.spread) m = 'prime';
+  if ((m === 'spread' && !S.spread) || (m === 'chance' && !S.chance)) m = 'prime';
   if (m === 'truth' && LAYERS[S.layer].ml) { toast('ML risk is a forecast product — showing observed temperature.', 'info'); setLayer('t2m', true); }
   S.mode = m; for (const b of $('modeSeg').children) b.classList.toggle('on', b.dataset.mode === m);
-  const [lo, hi, unit] = paintLegend($('legend'), S.layer, m === 'delta' ? 'delta' : m === 'spread' ? 'spread' : 'abs');
+  const [lo, hi, unit] = paintLegend($('legend'), m === 'chance' ? 'hrc' : S.layer, m === 'delta' ? 'delta' : m === 'spread' ? 'spread' : 'abs');
+  if (m === 'chance') $('layerNote').textContent = 'Heavy-rain chance: share of the 5 perturbed runs at or above 64.5 mm/day. It is a spread among perturbed runs, not a calibrated probability.';
   $('legLo').textContent = lo; $('legHi').textContent = hi; $('legUnit').textContent = unit;
   repaint(); updateTimelineLabels(); renderRisk(); renderAlerts();
 }
@@ -450,7 +458,7 @@ function setMode(m) {
 function setLayer(k, quiet) {
   if (LAYERS[k].ml && !S.hasRisk) return toast('The ML risk model is not loaded on the server (run train_risk.py).');
   S.layer = k; S.layers = new Set(LAYERS[k].ml ? [] : [k]); syncChips();
-  if (S.mode === 'spread') { S.spread = null; S.spreadSummary = null; S.mode = 'prime'; }
+  if (S.mode === 'spread') { S.spread = null; S.spreadSummary = null; S.mode = 'prime'; } if (S.mode === 'chance') S.mode = 'prime';
   if (!quiet) { setMode(S.mode === 'truth' && LAYERS[k].ml ? 'prime' : S.mode); renderChart(); }
 }
 // click on a weather chip: add or remove it from the overlay (at least one stays on)
@@ -459,7 +467,7 @@ function toggleLayer(k) {
   if (S.layers.has(k)) { S.layers.delete(k); if (S.layer === k) S.layer = [...S.layers].at(-1); }
   else { S.layers.add(k); S.layer = k; }
   syncChips();
-  if (S.mode === 'spread') { S.spread = null; S.spreadSummary = null; S.mode = 'prime'; }
+  if (S.mode === 'spread') { S.spread = null; S.spreadSummary = null; S.mode = 'prime'; } if (S.mode === 'chance') S.mode = 'prime';
   setMode(S.mode); renderChart();
 }
 function syncChips() {
@@ -733,7 +741,7 @@ async function snapshot() {
   toast('Snapshot saved.', 'info');
 }
 
-const MODE_NAME = { prime: 'Timeline Prime', multi: 'Multiverse', delta: 'Delta shock-impact', truth: 'Observed', spread: 'Ensemble spread' };
+const MODE_NAME = { prime: 'Timeline Prime', multi: 'Multiverse', delta: 'Delta shock-impact', truth: 'Observed', spread: 'Ensemble spread', chance: 'Heavy-rain chance (ensemble)' };
 async function downloadReport(tourLog = null) {
   if (!S.prime || !S.clim || !S.land) return toast('Wait for the simulation to finish first.', 'info');
   $('reportBtn').disabled = true; toast('Building the scenario report…', 'info');
@@ -820,7 +828,7 @@ async function runCustomDate() {
 function initUI() {
   $('windowSel').innerHTML = S.windows.map((w, i) => `<option value="${i}">${w.title} · ${w.date}</option>`).join('');
   $('windowSel').onchange = e => loadWindow(+e.target.value);
-  $('layerChips').innerHTML = `<button data-l="all" class="allchip">All layers ▶</button>` + Object.entries(LAYERS).map(([k, L]) => `<button data-l="${k}" class="${k === S.layer ? 'on' : ''}">${L.name}</button>`).join('');
+  $('layerChips').innerHTML = `<button data-l="all" class="allchip">All layers ▶</button>` + Object.entries(LAYERS).filter(([, L]) => !L.ens).map(([k, L]) => `<button data-l="${k}" class="${k === S.layer ? 'on' : ''}">${L.name}</button>`).join('');
   $('layerChips').onclick = e => { const k = e.target.dataset.l; if (!k) return; if (k === 'all') return cycleLayers(); stopCycle(); toggleLayer(k); };
   syncChips();
   $('presets').innerHTML = Object.entries(PRESETS).map(([k, p]) => `<button data-p="${k}">${p.name}<small>${p.sub}</small></button>`).join('');

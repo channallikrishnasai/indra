@@ -36,6 +36,8 @@ export const LAYERS = {
   tcwv: { name: 'Moisture', unit: 'kg/m²', cmap: 'moist', lo: 5, hi: 65, dRange: 8, value: (a, i) => a[5 * CELLS + i] },
   // INDRA-Risk ML layers: probabilities (%) from the learned post-processor, served by POST /risk
   flood: { name: 'Flood risk', unit: '%', cmap: 'risk', lo: 0, hi: 50, dRange: 25, alphaRamp: 2, risk: 0, ml: true },
+  // ensemble view only (not a chip): share of the 5 perturbed runs at or above 64.5 mm/day
+  hrc:   { name: 'Heavy-rain chance', unit: '% of runs', cmap: 'risk', lo: 0, hi: 100, dRange: 50, alphaRamp: 10, ens: true },
   heat:  { name: 'Heat risk', unit: '%', cmap: 'heat', lo: 0, hi: 80, dRange: 40, alphaRamp: 4, risk: 1, ml: true },
 };
 
