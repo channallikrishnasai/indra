@@ -3,6 +3,7 @@ import { Globe } from './globe.js';
 import { Map2D, CITIES } from './map2d.js';
 import { impacts, landMeanSeries, propagation } from './impact.js';
 import { generateAlerts, diffAlerts, ADVICE, SEVERITIES } from './alerts.js';
+import { loadStates, stateAt, stateStats, stateFeature, bboxOf } from './state.js';
 
 // ?api=http://host:port overrides; 127.0.0.1 avoids Windows' slow IPv6-first "localhost" lookup
 const API = new URLSearchParams(location.search).get('api') || `http://${!location.hostname || location.hostname === 'localhost' ? '127.0.0.1' : location.hostname}:8000`;
@@ -99,8 +100,8 @@ function buildPerturbation(sh, last) {
 const fieldCanvas = Object.assign(document.createElement('canvas'), { width: TEX_W, height: TEX_H });
 const cloudCanvas = Object.assign(document.createElement('canvas'), { width: CLOUD_W, height: CLOUD_H });
 const tooltip = $('tooltip');
-const globe = new Globe($('globe'), { onHover: hover, onPick: pick });
-const map = new Map2D($('map2d'), { onHover: hover, onPick: pick, fieldCanvas, cloudCanvas });
+const globe = new Globe($('globe'), { onHover: hover, onPick: pick, onSelect: selectState });
+const map = new Map2D($('map2d'), { onHover: hover, onPick: pick, onSelect: selectState, fieldCanvas, cloudCanvas });
 // MapLibre (~800 kB) is only downloaded the first time Street 3D is opened
 let streetImpl = null;
 const street = {
@@ -115,6 +116,8 @@ const street = {
   async flyToCity(lat, lon) { (await this.load()).flyToCity(lat, lon); },
   async overview() { (await this.load()).overview(); },
   snapshot() { return streetImpl ? streetImpl.snapshot() : Promise.resolve(null); },
+  async flyToState(name) { (await this.load()).flyToState(name, stateFeature(name), bboxOf(name)); },
+  setWeather(day) { streetImpl?.setWeather(day); },
 };
 
 function pick(lat, lon) {
@@ -150,7 +153,7 @@ function repaint() {
   const cc = cloudCanvas.getContext('2d'); cc.clearRect(0, 0, CLOUD_W, CLOUD_H); if (S.opts.clouds) paintClouds(cc, weatherDay, cloudT);
   for (const [dst, from] of [[globe.fieldCanvas, fieldCanvas], [globe.cloudCanvas, cloudCanvas]]) { const g = dst.getContext('2d'); g.clearRect(0, 0, dst.width, dst.height); g.drawImage(from, 0, 0); }
   globe.field.tex.needsUpdate = true; globe.clouds.tex.needsUpdate = true;
-  globe.setDay(weatherDay); map.setWind(weatherDay); S.curGrid = grid; S.curDay = weatherDay;
+  globe.setDay(weatherDay); map.setWind(weatherDay); street.setWeather(weatherDay); S.curGrid = grid; S.curDay = weatherDay;
   if (S.win) { const dt = new Date(S.win.date); dt.setDate(dt.getDate() + Math.round(t)); globe.setDate(dt); }
   fieldDirty = true;
 }
@@ -200,7 +203,7 @@ function renderImpacts() {
     card('Peak daily rain', fmt(P.peakRain, 0), 'mm', '#b23cff', dTxt(P.peakRain, M?.peakRain, ' mm', 0), P.peakRain / 3),
     card('Ensemble confidence', ens ? fmt(ens.conf, 0) : '—', ens ? '%' : '', '#9c8fe0', ens ? `<div class="d">day-10 σ ${fmt(ens.sigma, 2)} ${LAYERS[ens.layer].unit} (${LAYERS[ens.layer].name.toLowerCase()})</div>` : `<div class="d">run the 5-member ensemble</div>`, ens?.conf, true),
   ].join('');
-  renderRisk(); renderChart(); renderCity();
+  renderRisk(); renderChart(); renderCity(); renderState();
 }
 
 function renderRisk() {
@@ -391,6 +394,42 @@ function warnShock(force) {
 function play(on) { S.playing = on ?? !S.playing; $('playIcon').setAttribute('d', S.playing ? 'M6 4h4v16H6zM14 4h4v16h-4z' : 'M7 4v16l13-8z'); if (S.playing && S.day >= STEPS - 0.01) S.day = 0; }
 function stepDay(d) { play(false); S.day = Math.max(0, Math.min(STEPS, Math.round(S.day) + d)); $('dayRange').value = S.day; repaint(); updateTimelineLabels(); renderChart(); }
 const frameOpts = () => ({ ...S.opts });
+
+// ---------------------------------------------------------------- states: click a state, see its stats, open its own 3D street view
+function selectState(lat, lon) {
+  const name = stateAt(lat, lon);
+  if (!name) return toast('Click inside India to open a state (6–38°N, 65–101°E).', 'info');
+  chooseState(name);
+}
+function chooseState(name) {
+  S.state = name; $('stateSel').value = name;
+  map.setOutline(stateFeature(name));
+  if (streetImpl) streetImpl.map?.getSource('state')?.setData({ type: 'FeatureCollection', features: [stateFeature(name)] });
+  $('stateSec').hidden = false; $('stateSec').classList.remove('pulse'); void $('stateSec').offsetWidth; $('stateSec').classList.add('pulse');
+  renderState();
+}
+function renderState() {
+  if (!S.state || !S.prime || !S.clim) return;
+  const multi = S.multi && (S.mode === 'multi' || S.mode === 'delta');
+  const P = stateStats(S.state, S.prime, S.clim, S.risk.prime, S.alertsPrime);
+  const M = multi ? stateStats(S.state, S.multi, S.clim, S.risk.multi, S.alertsMulti) : null;
+  const d = (a, b, dig) => M ? `<div class="d">${multi ? 'universe' : 'multiverse'} ${b - a > 0 ? '+' : ''}${(b - a).toFixed(dig)}</div>` : '';
+  $('stateTitle').innerHTML = `<b>${S.state}</b> · ${P.cells} grid cells`;
+  $('stateCards').innerHTML = [
+    card('Mean temperature', P.meanT.toFixed(1), '°C', '#ff7a45', M && d(P.meanT, M.meanT, 1)),
+    card('Mean rain', P.meanR.toFixed(1), 'mm/day', '#46d3ff', M && d(P.meanR, M.meanR, 1)),
+    card('Mean wind', P.meanW.toFixed(1), 'm/s', '#3ddc97', M && d(P.meanW, M.meanW, 1)),
+    card('Heatwave cells', P.heatPct.toFixed(0), '% peak', '#ff5a3d', M && d(P.heatPct, M.heatPct, 0)),
+    card('Heavy-rain cells', P.floodPct.toFixed(0), '% peak', '#5b8cff', M && d(P.floodPct, M.floodPct, 0)),
+    card('Alerts', P.alerts, `${P.high} High+`, '#e5484d', M && `<div class="d">${multi ? 'universe' : 'multiverse'} ${M.alerts - P.alerts > 0 ? '+' : ''}${M.alerts - P.alerts}</div>`),
+    card('ML flood chance', P.floodRisk == null ? '–' : P.floodRisk.toFixed(0), '% max', '#7b3dff', null),
+    card('ML heat chance', P.heatRisk == null ? '–' : P.heatRisk.toFixed(0), '% max', '#ff6a1a', null),
+  ].join('');
+}
+function openStateStreet() {
+  if (!S.state) return toast('Click a state first.', 'info');
+  setView('street'); street.flyToState(S.state);
+}
 
 // ---------------------------------------------------------------- city forecast (Prime next to Multiverse)
 const CITY_VARS = [['t', 'Temp', '°C', 1, '#ff7a45'], ['r', 'Rain', 'mm', 1, '#46d3ff'], ['w', 'Wind', 'm/s', 1, '#3ddc97']];
@@ -606,6 +645,8 @@ function initUI() {
   $('cityGo').onclick = () => { if (!$('citySel').value) { $('citySel').value = '1'; renderCity(); }                // default: Mumbai
     const c = CITIES[$('citySel').value], fresh = !street.map; setView('street'); if (!fresh) street.flyToCity(c[1], c[2]); };
   $('optSat').onchange = e => street.setSatellite(e.target.checked);
+  $('stateSel').onchange = e => e.target.value && chooseState(e.target.value);
+  $('stateGo').onclick = openStateStreet;
   $('customDate').oninput = customHint; $('customGo').onclick = runCustomDate; initCustomDate();
   $('alertsBtn').onclick = () => toggleAlerts(); $('alertsClose').onclick = () => toggleAlerts(false);
   for (const id of ['fState', 'fType', 'fStatus']) $(id).onchange = renderAlerts;
@@ -646,7 +687,8 @@ function loop(now) {
 async function boot() {
   const msg = t => $('loaderMsg').textContent = t;
   msg('Loading Earth & borders…');
-  await Promise.all([globe.loadBorders(), map.loadBorders()]);
+  await Promise.all([globe.loadBorders(), map.loadBorders(), loadStates()]);
+  $('stateSel').innerHTML = '<option value="">Select a state…</option>' + [...(await loadStates())].map(f => f.properties.name).sort().map(n => `<option>${n}</option>`).join('');
   msg('Loading initial-condition windows…');
   const res = await fetch('/windows.json');
   // demo initial states are generated locally (not shipped): python tools/make_windows.py

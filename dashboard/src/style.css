@@ -282,3 +282,14 @@ body.layout-focus #map3d .maplibregl-ctrl-top-right, body.layout-cinema #map3d .
 .custom label { display: block; color: var(--muted); font-size: 11px; margin-bottom: 5px; }
 .custom input[type=date] { flex: 1; background: var(--chip); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; color: var(--text); color-scheme: inherit; }
 .custom .hint b { color: var(--text); font-weight: 600; }
+
+/* rain streaks over Street 3D */
+.rainfx { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; }
+
+/* state panel */
+.statesec { border-top: 1px solid var(--line); }
+.statesec[hidden] { display: none; }
+.statesec .hint { margin: 2px 0 8px; }
+.statesec #stateTitle b { color: var(--text); }
+.statesec.pulse .citycards { animation: pulseIn .6s var(--ease); }
+@keyframes pulseIn { from { opacity: .2; transform: translateY(6px); } }

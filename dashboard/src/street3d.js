@@ -3,7 +3,7 @@
 // the server and the grader stay offline). Created lazily, so nothing is fetched until the view is opened.
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { BBOX } from './field.js';
+import { BBOX, CELLS, NLON, LAT0, LON0 } from './field.js';
 
 const STYLE = 'https://tiles.openfreemap.org/styles/liberty';                                  // OpenStreetMap vector tiles, no key
 const TERRAIN = 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png';      // AWS open terrain tiles
@@ -47,6 +47,10 @@ export class Street3D {
         paint: { 'fill-extrusion-color': '#d9d4cc', 'fill-extrusion-height': ['coalesce', ['get', 'render_height'], 8],
           'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0], 'fill-extrusion-opacity': 0.92 } });
     } else m.setPaintProperty('building-3d', 'fill-extrusion-opacity', 0.92);
+    m.addSource('state', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+    m.addLayer({ id: 'state-fill', type: 'fill', source: 'state', paint: { 'fill-color': '#ffd166', 'fill-opacity': 0.07 } }, firstSymbol);
+    m.addLayer({ id: 'state-line', type: 'line', source: 'state', paint: { 'line-color': '#ffd166', 'line-width': 2.4, 'line-opacity': 0.9 } }, firstSymbol);
+    this.initRain();
     m.setLight({ anchor: 'map', position: [1.4, 210, 35], intensity: 0.45 });
     this.setSatellite(this.satellite); this.setActive(!!this.active);
   }
@@ -56,8 +60,63 @@ export class Street3D {
     if (this.map?.getLayer('sat')) this.map.setLayoutProperty('sat', 'visibility', on ? 'visible' : 'none');
   }
 
+  /** fly to one state's own bounds (its own street view), outlined in gold */
+  async flyToState(name, feature, bbox) {
+    await this.ensure();
+    const m = this.map;
+    m.getSource('state').setData({ type: 'FeatureCollection', features: feature ? [feature] : [] });
+    m.stop(); m.fitBounds(bbox, { padding: { top: 70, bottom: 110, left: 60, right: 380 }, pitch: 55, bearing: -18, maxZoom: 9.5, duration: 3600, essential: true });
+  }
+
+  // ---- rain: streaks anchored to the grid cells where the forecast has rain, falling over the 3D streets
+  initRain() {
+    this.rainCv = Object.assign(document.createElement('canvas'), { className: 'rainfx' });
+    this.container.appendChild(this.rainCv);
+    this.rp = new Float32Array(1400 * 4);                      // per drop: lat, lon, phase (0..1), speed
+    this.rainT = performance.now();
+  }
+  /** day = [6*CELLS] physical for the current forecast day; only precipitation and wind are used */
+  setWeather(day) {
+    this.day = day;
+    const tp = day.subarray(CELLS, 2 * CELLS), cdf = new Float32Array(CELLS); let s = 0;
+    for (let k = 0; k < CELLS; k++) { s += tp[k] > 0.5 ? tp[k] : 0; cdf[k] = s; }
+    this.rainCdf = s > 0 ? cdf : null; this.rainTot = s;
+    if (this.rainCdf) for (let p = 0; p < this.rp.length; p += 4) this.anchor(p);
+  }
+  anchor(p) {
+    const x = Math.random() * this.rainTot; let lo = 0, hi = CELLS - 1;
+    while (lo < hi) { const m = (lo + hi) >> 1; if (this.rainCdf[m] < x) lo = m + 1; else hi = m; }
+    this.rp[p] = LAT0 + Math.floor(lo / NLON) + Math.random() - 0.5; this.rp[p + 1] = LON0 + lo % NLON + Math.random() - 0.5;
+    this.rp[p + 2] = Math.random(); this.rp[p + 3] = 0.9 + Math.random() * 0.5;
+  }
+  drawRain(now) {
+    const c = this.rainCv, m = this.map, W = this.container.clientWidth, H = this.container.clientHeight;
+    if (c.width !== W || c.height !== H) { c.width = W; c.height = H; }
+    const g = c.getContext('2d'); g.clearRect(0, 0, W, H);
+    if (!this.rainCdf || m.getZoom() < 7) return;
+    const dt = Math.min(0.1, (now - this.rainT) / 1000); this.rainT = now;
+    const tu = this.day.subarray(2 * CELLS, 3 * CELLS), tv = this.day.subarray(3 * CELLS, 4 * CELLS), tp = this.day.subarray(CELLS, 2 * CELLS);
+    const wiggle = Math.min(1, Math.max(0, m.getZoom() - 6) / 3);             // streaks grow in as you zoom in
+    g.lineCap = 'round'; g.lineWidth = 1.1;
+    for (let p = 0; p < this.rp.length; p += 4) {
+      this.rp[p + 2] = (this.rp[p + 2] + dt * this.rp[p + 3] * 0.55) % 1;      // falling
+      const xy = m.project([this.rp[p + 1], this.rp[p + 0]]);
+      const y = (xy.y + this.rp[p + 2] * H) % H, x = xy.x;
+      if (x < -20 || x > W + 20) continue;
+      const k = Math.floor(this.rp[p] - LAT0 + 0.5) * NLON + Math.floor(this.rp[p + 1] - LON0 + 0.5), kk = Math.min(CELLS - 1, Math.max(0, k));
+      const rain = tp[kk], int = Math.min(1, rain / 20);
+      if (rain < 0.5) { this.anchor(p); continue; }                             // re-spawn where it is raining now
+      const len = (8 + 14 * int) * wiggle + 2, slant = -(tu[kk] * 0.35);
+      g.strokeStyle = `rgba(200,220,255,${0.18 + 0.55 * int})`;
+      g.beginPath(); g.moveTo(x, y); g.lineTo(x + slant * len * 0.4, y + len); g.stroke();
+    }
+  }
+
   /** only re-read the live field canvas while this view is on screen */
-  setActive(on) { this.active = on; const src = this.map?.getSource('indra'); if (src) on ? src.play() : src.pause(); if (on) this.map?.resize(); }
+  setActive(on) {
+    this.active = on; const src = this.map?.getSource('indra'); if (src) on ? src.play() : src.pause(); if (on) this.map?.resize();
+    if (on && !this.rainLoop && this.map) { const tick = now => { if (!this.active) { this.rainLoop = null; return; } this.drawRain(now); this.rainLoop = requestAnimationFrame(tick); }; this.rainLoop = requestAnimationFrame(tick); }
+  }
 
   /** fly to the state first (wide, gently tilted), then sweep down to street level */
   async flyToCity(lat, lon) {

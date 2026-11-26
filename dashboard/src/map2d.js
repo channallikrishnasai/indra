@@ -11,10 +11,10 @@ export const CITIES = [['New Delhi', 28.6, 77.2], ['Mumbai', 19.08, 72.88], ['Ko
 const SEAS = [['ARABIAN SEA', 15, 64.5], ['BAY OF BENGAL', 15.5, 88.5], ['INDIAN OCEAN', 3, 80]];
 
 export class Map2D {
-  constructor(root, { onHover, onPick, fieldCanvas, cloudCanvas }) {
+  constructor(root, { onHover, onPick, onSelect, fieldCanvas, cloudCanvas }) {
     this.c = Object.fromEntries(['mapBase', 'mapField', 'mapWind', 'mapUi'].map(id => [id, document.getElementById(id)]));
     this.ctx = Object.fromEntries(Object.entries(this.c).map(([k, v]) => [k, v.getContext('2d')]));
-    this.fieldCanvas = fieldCanvas; this.cloudCanvas = cloudCanvas; this.onHover = onHover; this.onPick = onPick;
+    this.fieldCanvas = fieldCanvas; this.cloudCanvas = cloudCanvas; this.onHover = onHover; this.onPick = onPick; this.onSelect = onSelect;
     this.t = zoomIdentity; this.active = false; this.dirty = true;
     this.img = new Image(); this.img.src = '/tex/earth-blue-marble.jpg'; this.img.onload = () => this.drawBase();
     this.N = 1800; this.P = new Float32Array(this.N * 3);
@@ -24,7 +24,13 @@ export class Map2D {
     select(this.c.mapUi).call(this.zoom).on('dblclick.zoom', null);
     this.c.mapUi.addEventListener('pointermove', e => { const [lat, lon] = this.invert(e.offsetX, e.offsetY); this.onHover({ lat, lon, x: e.clientX, y: e.clientY }); });
     this.c.mapUi.addEventListener('pointerleave', () => this.onHover(null));
-    this.c.mapUi.addEventListener('click', e => { if (e.shiftKey) { const [lat, lon] = this.invert(e.offsetX, e.offsetY); this.onPick(lat, lon); } });
+    let down = null;
+    this.c.mapUi.addEventListener('pointerdown', e => { down = [e.clientX, e.clientY]; });
+    this.c.mapUi.addEventListener('click', e => {
+      if (down && Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 4) return;          // a drag, not a click
+      const [lat, lon] = this.invert(e.offsetX, e.offsetY);
+      e.shiftKey ? this.onPick(lat, lon) : this.onSelect(lat, lon);
+    });
     addEventListener('resize', () => this.resize()); this.resize();
   }
 
@@ -78,6 +84,7 @@ export class Map2D {
   setWind(day) { this.u = day ? day.subarray(2 * CELLS, 3 * CELLS) : null; this.v = day ? day.subarray(3 * CELLS, 4 * CELLS) : null; }
   respawn(k, rnd) { this.P[k * 3] = BBOX.s + Math.random() * 32; this.P[k * 3 + 1] = BBOX.w + Math.random() * 36; this.P[k * 3 + 2] = rnd ? Math.random() * 80 : 0; }
   setShock(s) { this.shock = s; this.dirty = true; }
+  setOutline(f) { this.outline = f; this.dirty = true; }
   flyTo(lat, lon, k = 4.2) {
     const tx = this.w / 2 - (lon + 180) / 360 * this.W0 * k, ty = this.h / 2 - ((this.h - this.W0 / 2) / 2 + (90 - lat) / 180 * this.W0 / 2) * k;
     const from = this.t, to = zoomIdentity.translate(tx, ty).scale(k), t0 = performance.now(), dur = 1800;
@@ -123,6 +130,7 @@ export class Map2D {
     }
     // UI overlay: domain box, labels, cities, shock
     const u = this.ctx.mapUi; u.clearRect(0, 0, this.w, this.h);
+    if (this.outline) { u.beginPath(); geoPath(this.projection(), u)(this.outline); u.strokeStyle = '#ffd166'; u.lineWidth = 2.2; u.setLineDash([]); u.stroke(); }
     u.setLineDash([6, 5]); u.strokeStyle = 'rgba(70,211,255,0.6)'; u.lineWidth = 1; u.strokeRect(x0, y0, w, h); u.setLineDash([]);
     u.font = '600 11px Inter'; u.textAlign = 'center';
     if (this.t.k > 2 && this.showCities !== false) {

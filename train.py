@@ -47,6 +47,8 @@ def main():
     ap.add_argument("--bs", type=int, default=32)
     ap.add_argument("--lr", type=float, default=2e-3)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--init", default="", help="start from this checkpoint (fine-tune)")
+    ap.add_argument("--rain-w", type=float, default=1.5, help="loss weight on rain")
     a = ap.parse_args()
     torch.manual_seed(a.seed); np.random.seed(a.seed)
     torch.set_num_threads(max(1, torch.get_num_threads()))
@@ -57,12 +59,14 @@ def main():
     mean = z[tr].mean(axis=(0, 2, 3)); std = z[tr].std(axis=(0, 2, 3))
     clim = climatology(z[tr], doy[tr])
     model = Indra(mean, std, static, clim, width=a.width)
+    if a.init:
+        model.load_state_dict(torch.load(a.init, map_location="cpu", weights_only=True)["state"])
     print(f"params {sum(p.numel() for p in model.net.parameters())/1e6:.2f}M  train days {tr.sum()}  val days {(~tr).sum()}")
 
     Z = model.norm(torch.from_numpy(z))                         # [N,6,H,W] normalised
     D = torch.from_numpy(doy)
     w = torch.as_tensor(np.cos(np.deg2rad(LAT)), dtype=torch.float32); w = (w / w.mean()).view(1, 1, -1, 1)
-    chw = torch.tensor([1.0, 1.5, 1.0, 1.0, 1.0, 1.0]).view(1, NC, 1, 1)   # rain matters twice: RMSE + CSI
+    chw = torch.tensor([1.0, a.rain_w, 1.0, 1.0, 1.0, 1.0]).view(1, NC, 1, 1)   # rain matters twice: RMSE + CSI
 
     def starts(mask, K):
         ok = np.where(mask)[0]; ok = ok[(ok >= 2) & (ok + K < len(Z))]

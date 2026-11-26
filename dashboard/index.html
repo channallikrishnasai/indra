@@ -126,6 +126,12 @@
   </aside>
 
   <aside class="panel right glass">
+    <section class="statesec" id="stateSec" hidden>
+      <h3 id="stateTitle">State</h3>
+      <p class="hint" id="stateHint">Click any state on the 2D map or the globe.</p>
+      <div class="cityrow"><select id="stateSel" aria-label="State"></select><button class="ghost slim" id="stateGo" title="Open this state in 3D street view">3D street view ↗</button></div>
+      <div class="cards citycards" id="stateCards"></div>
+    </section>
     <section>
       <h3>City forecast <span class="muted small">from the live grid</span></h3>
       <div class="cityrow"><select id="citySel" aria-label="City"></select><button class="ghost slim" id="cityGo" title="Fly to street level in 3D">Street 3D ↗</button></div>

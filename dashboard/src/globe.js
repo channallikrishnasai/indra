@@ -57,8 +57,8 @@ function glowTexture() {
 }
 
 export class Globe {
-  constructor(canvas, { onHover, onPick }) {
-    this.canvas = canvas; this.onHover = onHover; this.onPick = onPick; this.active = true; this.autoRotate = false;
+  constructor(canvas, { onHover, onPick, onSelect }) {
+    this.canvas = canvas; this.onHover = onHover; this.onPick = onPick; this.onSelect = onSelect; this.active = true; this.autoRotate = false;
     const r = this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: true });
     r.setPixelRatio(Math.min(devicePixelRatio, 2)); r.outputColorSpace = THREE.SRGBColorSpace;
     this.scene = new THREE.Scene();
@@ -137,7 +137,12 @@ export class Globe {
 
     this.ray = new THREE.Raycaster(); this.mouse = new THREE.Vector2(); this.t0 = performance.now();
     canvas.addEventListener('pointermove', e => this.pointer(e, false));
-    canvas.addEventListener('click', e => { if (e.shiftKey) this.pointer(e, true); });
+    let down = null;
+    canvas.addEventListener('pointerdown', e => { down = [e.clientX, e.clientY]; });
+    canvas.addEventListener('click', e => {
+      if (down && Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 4) return;
+      this.pointer(e, e.shiftKey ? 'pick' : 'select');
+    });
     canvas.addEventListener('pointerleave', () => this.onHover(null));
     canvas.addEventListener('pointerdown', () => { this.intro = null; });
     addEventListener('resize', () => this.resize()); this.resize();
@@ -178,7 +183,7 @@ export class Globe {
     const hit = this.ray.intersectObject(this.earth)[0];
     if (!hit) return this.onHover(null);
     const [lat, lon] = v2ll(hit.point);
-    if (pick) this.onPick(lat, lon); else this.onHover({ lat, lon, x: e.clientX, y: e.clientY });
+    if (pick === 'pick') this.onPick(lat, lon); else if (pick === 'select') this.onSelect(lat, lon); else this.onHover({ lat, lon, x: e.clientX, y: e.clientY });
   }
 
   /** current simulated day -> wind particles, rain spawn distribution, lightning cells */
