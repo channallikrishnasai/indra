@@ -850,8 +850,8 @@ async function runCustomDate() {
     if (!res.ok) throw new Error((await res.json()).detail || res.status);
     const r = await res.json(), bin = atob(r.b64), bytes = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    const block = new Float32Array(bytes.buffer), all = new Float32Array(S.winData.length + block.length);
-    all.set(S.winData); all.set(block, S.winData.length); S.winData = all;
+    const block = new Float32Array(bytes.buffer), prev = S.winData || new Float32Array(0), all = new Float32Array(prev.length + block.length);
+    all.set(prev); all.set(block, prev.length); S.winData = all;
     S.windows.push({ id: 'custom-' + date, title: `Your dates · ${fmtDay(addDays(date, -2))} – ${fmtDay(addDays(date, 0))}`,
       desc: `Your chosen start: 3 real days ending ${fmtDay(addDays(date, 0))}`, date, doy: r.doy, doy_sincos: r.doy_sincos });
     const i = S.windows.length - 1;
@@ -1010,12 +1010,20 @@ async function boot() {
   await Promise.all([globe.loadBorders(), map.loadBorders(), loadStates()]);
   $('stateSel').innerHTML = '<option value="">Select a state…</option>' + [...(await loadStates())].map(f => f.properties.name).sort().map(n => `<option>${n}</option>`).join('');
   msg('Loading initial-condition windows…');
-  const res = await fetch('/windows.json');
-  // demo initial states are generated locally (not shipped): python tools/make_windows.py
-  if (!res.ok) { msg('No demo windows found. Run: python tools/make_windows.py --data data/india_climate_train.nc, then reload.'); return; }
-  const meta = await res.json();
-  S.windows = meta.windows; S.winData = new Float32Array(await (await fetch('/windows.bin')).arrayBuffer());
+  // optional local demo windows (git-ignored, not in a clean clone). Without them the dashboard still starts:
+  // the engine, the globe and the map work, and the "Your dates" picker works if tools/window_server.py runs.
+  let meta = null, winData = null;
+  try {
+    const res = await fetch('/windows.json');
+    if (res.ok) { meta = await res.json(); const wb = await fetch('/windows.bin'); if (wb.ok) winData = new Float32Array(await wb.arrayBuffer()); }
+  } catch { /* no local windows: fine */ }
+  S.windows = meta && winData ? meta.windows : []; S.winData = winData;
   initUI(); requestAnimationFrame(loop);
+  if (!S.windows.length) {
+    for (const id of ['tourBtn']) { const b = $(id); if (b) { b.disabled = true; b.title = 'Needs the local demo windows (tools/make_windows.py); not in a clean clone'; } }
+    $('modeSeg').querySelector('[data-mode=truth]')?.setAttribute('title', 'Needs the local demo windows; not in a clean clone');
+    $('windowDesc').textContent = 'Demo start dates are not in this copy. Use “Your dates” with tools/window_server.py running, or press Forecast after picking a date.';
+  }
   msg('Connecting to the INDRA engine…');
   try {
     const h = await post('/health'); S.modelName = h.model_name;
@@ -1026,6 +1034,6 @@ async function boot() {
   document.querySelectorAll('.srcline').forEach(e => (e.textContent = `Source: kit data 2005–2021 · ${S.modelName || 'INDRA-v1'} model · commit ${COMMIT}`));
   await Promise.race([globe.ready, new Promise(r => setTimeout(r, 4000))]);
   $('loader').classList.add('done'); globe.flyTo(21, 82, 2.5);
-  if (S.modelName) await loadWindow(0);
+  if (S.modelName && S.windows.length) await loadWindow(0);
 }
 boot();
