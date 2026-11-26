@@ -1,7 +1,6 @@
 import { NC, NLAT, NLON, CELLS, LAYERS, LAT0, LON0, BBOX, TEX_W, TEX_H, CLOUD_W, CLOUD_H, idx, layerGrid, lerpDay, paintField, paintClouds, paintLegend, bilinear, inDomain } from './field.js';
 import { Globe } from './globe.js';
 import { Map2D, CITIES } from './map2d.js';
-import { Street3D } from './street3d.js';
 import { impacts, landMeanSeries, propagation } from './impact.js';
 import { generateAlerts, diffAlerts, ADVICE, SEVERITIES } from './alerts.js';
 
@@ -100,7 +99,20 @@ const cloudCanvas = Object.assign(document.createElement('canvas'), { width: CLO
 const tooltip = $('tooltip');
 const globe = new Globe($('globe'), { onHover: hover, onPick: pick });
 const map = new Map2D($('map2d'), { onHover: hover, onPick: pick, fieldCanvas, cloudCanvas });
-const street = new Street3D($('map3d'), fieldCanvas, { onHover: hover, onPick: pick });
+// MapLibre (~800 kB) is only downloaded the first time Street 3D is opened
+let streetImpl = null;
+const street = {
+  get map() { return streetImpl?.map; },
+  async load() {
+    if (!streetImpl) { const { Street3D } = await import('./street3d.js'); streetImpl = new Street3D($('map3d'), fieldCanvas, { onHover: hover, onPick: pick }); streetImpl.setSatellite($('optSat').checked); }
+    return streetImpl;
+  },
+  async ensure() { await (await this.load()).ensure(); },
+  setActive(on) { streetImpl?.setActive(on); },
+  setSatellite(on) { streetImpl?.setSatellite(on); },
+  async flyToCity(lat, lon) { (await this.load()).flyToCity(lat, lon); },
+  async overview() { (await this.load()).overview(); },
+};
 
 function pick(lat, lon) {
   if (!inDomain(lat, lon)) return toast(`(${lat.toFixed(1)}°, ${lon.toFixed(1)}°) is outside INDRA's simulated domain (6–38°N, 65–101°E).`);
@@ -181,7 +193,7 @@ function renderImpacts() {
     card('Flood risk area', fmt(P.floodArea / 1000, 0), 'k km²', '#5b8cff', dTxt(P.floodArea / 1000, M && M.floodArea / 1000, 'k km²', 0), P.floodArea / 20000),
     card('Crop water stress', fmt(P.cropStress), '%', '#f5b342', dTxt(P.cropStress, M?.cropStress, ' pts'), P.cropStress),
     card('Rain vs normal', (P.rainDeparture > 0 ? '+' : '') + fmt(P.rainDeparture, 0), '%', '#46d3ff', dTxt(P.rainDeparture, M?.rainDeparture, ' pts', 0), 50 + P.rainDeparture / 2),
-    card('Wind power @100 m', fmt(P.windPower, 0), 'W/m²', '#3ddc97', dTxt(P.windPower, M?.windPower, ' W/m²', 0), P.windPower / 4),
+    card('Wind power 100 m', fmt(P.windPower, 0), 'W/m²', '#3ddc97', dTxt(P.windPower, M?.windPower, ' W/m²', 0), P.windPower / 4),
     card('Peak daily rain', fmt(P.peakRain, 0), 'mm', '#b23cff', dTxt(P.peakRain, M?.peakRain, ' mm', 0), P.peakRain / 3),
     card('Ensemble confidence', ens ? fmt(ens.conf, 0) : '—', ens ? '%' : '', '#9c8fe0', ens ? `<div class="d">day-10 σ ${fmt(ens.sigma, 2)} ${LAYERS[ens.layer].unit} (${LAYERS[ens.layer].name.toLowerCase()})</div>` : `<div class="d">run the 5-member ensemble</div>`, ens?.conf, true),
   ].join('');
@@ -392,8 +404,8 @@ function renderCity() {
   if (!S.prime || !S.land) return;
   const c = CITIES[$('citySel').value], P = cityValues(S.prime, c), M = S.multi && cityValues(S.multi, c), d = Math.max(1, Math.round(S.day));
   const delta = (a, b, dig) => { if (b == null) return ''; const x = b - a; return Math.abs(x) < 10 ** -dig / 2 ? '' : `<span class="${x > 0 ? 'up' : 'down'}">${x > 0 ? '+' : ''}${x.toFixed(dig)}</span>`; };
-  $('cityCards').innerHTML = CITY_VARS.map(([k, n, u, dig, col]) => card(`${n} · day +${d}`, P[d][k].toFixed(dig), u, col,
-    M ? `<div class="d">multiverse ${delta(P[d][k], M[d][k], dig) || 'no change'}</div>` : '')).join('');
+  $('cityCards').innerHTML = CITY_VARS.map(([k, n, u, dig, col]) => card(`${n} d+${d}`, P[d][k].toFixed(dig), u, col,
+    M ? `<div class="d">Δ ${delta(P[d][k], M[d][k], dig) || '0'}</div>` : '')).join('');
   $('cityTab').innerHTML = `<tr><th>Day</th>${CITY_VARS.map(([, n, u]) => `<th>${n} ${u}</th>`).join('')}</tr>` +
     P.slice(1).map((p, i) => `<tr class="${i + 1 === d ? 'cur' : ''}"><td>+${i + 1}</td>${CITY_VARS.map(([k, , , dig]) => `<td>${p[k].toFixed(dig)} ${M ? delta(p[k], M[i + 1][k], dig) : ''}</td>`).join('')}</tr>`).join('');
 }

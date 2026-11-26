@@ -23,7 +23,7 @@ _ap.add_argument("--weights", default=str(ROOT / "weights" / "indra.pt"))
 ARGS, _ = _ap.parse_known_args()
 MODEL = load_indra(ARGS.weights)
 MODEL.simulate(np.full((3, NC, NLAT, NLON), 1.0, "f4") * np.array([295, 2, 1, 1, 101000, 30], "f4")[None, :, None, None], 0.0, 2)  # warm-up
-MODEL_NAME = "INDRA-v1 local residual neural stepper"
+MODEL_NAME = "INDRA-v1 (residual CNN)"
 
 # INDRA-Risk (optional, dashboard only): learned heavy-rain / heat-stress probabilities on top of a rollout
 RISK = None
