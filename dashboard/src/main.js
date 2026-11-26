@@ -516,12 +516,13 @@ function captionFor(w, id) {
 
 async function tour() {
   if (S.tour) { S.tour = null; $('tourBtn').classList.remove('on'); $('caption').hidden = true; setLayout('full'); return; }
-  const id = S.tour = {}; $('tourBtn').classList.add('on'); setLayout('cinema');
+  const id = S.tour = {}; S.tourLog = []; $('tourBtn').classList.add('on'); setLayout('cinema');
   for (let i = 0; i < S.windows.length && S.tour === id; i++) {
     const w = S.windows[i]; $('caption').hidden = false; captionFor(w, id);
     setLayer(/flood|monsoon|Kerala|Konkan/i.test(w.title) ? 'tp' : /heat/i.test(w.title) ? 't2m' : /Cyclone/i.test(w.title) ? 'wind' : 't2m');
     await loadWindow(i); if (S.tour !== id) break;
     captionFor(w, id);                                                    // numbers now come from this event's forecast
+    S.tourLog.push({ title: w.title, date: w.date, alerts: S.alertsPrime.length, peakRain: Math.max(...S.prime.slice(1).map(a => Math.max(...a.subarray(CELLS, 2 * CELLS)))), meanT: landMeanSeries(S.prime.slice(1), S.land, (a, k) => a[k] - 273.15).reduce((x, y) => x + y, 0) / 10 });
     if (S.view === 'globe') globe.flyTo(21 + (Math.random() - 0.5) * 6, 82 + (Math.random() - 0.5) * 10, 2.1 + Math.random() * 0.4, 3);
     setMode('prime'); S.day = 0; play(true);
     await new Promise(r => { const t = setInterval(() => {
@@ -530,7 +531,19 @@ async function tour() {
     }, 200); });
     await new Promise(r => setTimeout(r, 900));
   }
-  if (S.tour === id) tour();
+  if (S.tour === id) tourEnd(id);
+}
+
+// the tour ends on a summary card with the report and replay buttons
+function tourEnd(id) {
+  S.tour = null; $('tourBtn').classList.remove('on'); setLayout('full');
+  $('caption').innerHTML = `<b>Tour complete</b><span>${S.tourLog.length} events · every number below is from the run you just watched</span>
+    <div class="nums"><div><span>${S.tourLog.reduce((a, e) => a + e.alerts, 0)}</span><small>alerts in total</small></div><div><span>${Math.max(...S.tourLog.map(e => e.peakRain)).toFixed(0)}</span><small>peak rain mm</small></div></div>
+    <div class="actions"><button class="primary slim" id="tourPdf">Download tour report (PDF)</button><button class="ghost slim" id="tourAgain">Replay</button><button class="ghost slim" id="tourClose">Close</button></div>`;
+  $('caption').classList.remove('swap'); void $('caption').offsetWidth; $('caption').classList.add('swap');
+  $('tourPdf').onclick = () => downloadReport(S.tourLog);
+  $('tourAgain').onclick = () => { $('caption').hidden = true; tour(); };
+  $('tourClose').onclick = () => { $('caption').hidden = true; };
 }
 
 // live data ticker: city values and the headline numbers, scrolling above the timeline (duplicated for a seamless loop)
@@ -568,7 +581,7 @@ async function snapshot() {
 }
 
 const MODE_NAME = { prime: 'Timeline Prime', multi: 'Multiverse', delta: 'Delta shock-impact', truth: 'Observed', spread: 'Ensemble spread' };
-async function downloadReport() {
+async function downloadReport(tourLog = null) {
   if (!S.prime || !S.clim || !S.land) return toast('Wait for the simulation to finish first.', 'info');
   $('reportBtn').disabled = true; toast('Building the scenario report…', 'info');
   try {
@@ -590,6 +603,8 @@ async function downloadReport() {
       city: { name: c ? c[0] : 'All India (land average)', rows: cp.slice(1).map((v, i) => [i + 1, v.t, v.r, v.w, cm && cm[i + 1].t - v.t, cm && cm[i + 1].r - v.r, cm && cm[i + 1].w - v.w]) },
       alerts: { counts, list: alerts }, prop: prop && { near: prop[0].nearFrac, r1: prop[0].radius, r10: prop[prop.length - 1].radius },
       tele: { model: S.modelName, ms: S.lastMs, zero: S.nullDiff },
+      tour: tourLog?.length ? tourLog : null,
+      state: S.state ? { name: S.state, ...stateStats(S.state, S.prime, S.clim, S.risk.prime, S.alertsPrime) } : null,
     });
     toast(`Saved ${name}`, 'info');
   } catch (e) { toast(`Report failed: ${e.message}`); }

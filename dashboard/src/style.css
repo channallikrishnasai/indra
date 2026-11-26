@@ -313,3 +313,7 @@ body.layout-focus #map3d .maplibregl-ctrl-top-right, body.layout-cinema #map3d .
 #caption .prog i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent2), var(--accent)); transition: width .9s linear; }
 #caption.swap > * { animation: rise2 .5s var(--ease) both; }
 .ticker .sep { color: var(--accent2); }
+#caption .actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 12px; }
+#caption .actions button { padding: 7px 14px; border-radius: 10px; font-size: 12.5px; cursor: pointer; }
+#caption .actions .primary { color: #fff; border: 0; background: linear-gradient(135deg, #7c5cff, #46d3ff); box-shadow: 0 6px 20px rgba(124,92,255,.35); }
+#caption .actions .ghost { border: 1px solid var(--line); background: var(--chip); color: var(--text); }
