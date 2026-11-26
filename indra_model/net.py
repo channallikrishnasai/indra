@@ -146,7 +146,7 @@ class Indra(nn.Module):
     alpha = None     # [L,6] calibrated anomaly damping per lead (set by calibrate.py), None = raw model
     clim_tp = None   # [366,H,W] arithmetic-mean rain climatology (mm/day) for physical-space rain calibration
     alpha_tp = None  # [L] rain damping per lead, physical space
-    qmix = 1.0                    # strength of the rain mapping
+    qmix = 1.0                    # strength of the rain mapping: one number, or a list with one value per lead (1..10)
     qmap_pred = qmap_obs = None  # [10,201] rain quantiles of the model / of observations (calibrate_rain.py)
 
     def map_rain(self, x):
@@ -157,7 +157,9 @@ class Indra(nn.Module):
         for k in range(x.shape[0]):
             qp, qo = self.qmap_pred[min(k, 9)].numpy(), self.qmap_obs[min(k, 9)].numpy()
             mapped = np.interp(np.maximum(x[k, 1], 0.0), qp, qo)   # np.interp clamps above the top quantile
-            x[k, 1] = (1 - self.qmix) * x[k, 1] + self.qmix * mapped     # qmix = 1: full mapping, 0.5: halfway
+            qm = self.qmix if isinstance(self.qmix, (list, tuple, np.ndarray)) else [self.qmix]
+            q = float(qm[min(k, len(qm) - 1)])
+            x[k, 1] = (1 - q) * x[k, 1] + q * mapped     # q = 1: full mapping, 0.5: halfway
         return x
 
     def calibrated(self, out_z, doy_last):
@@ -216,7 +218,7 @@ def load_indra(path) -> Indra:
     if "alpha" in ck:
         m.alpha = torch.as_tensor(ck["alpha"], dtype=torch.float32)
     if "qmap_pred" in ck:
-        m.qmap_pred = ck["qmap_pred"].float(); m.qmap_obs = ck["qmap_obs"].float(); m.qmix = float(ck.get("qmix", 1.0))
+        m.qmap_pred = ck["qmap_pred"].float(); m.qmap_obs = ck["qmap_obs"].float(); qv = ck.get("qmix", 1.0); m.qmix = [float(v) for v in qv] if isinstance(qv, (list, tuple)) else float(qv)
     if "clim_tp" in ck:
         m.clim_tp = torch.as_tensor(ck["clim_tp"], dtype=torch.float32)
         m.alpha_tp = torch.as_tensor(ck["alpha_tp"], dtype=torch.float32)
