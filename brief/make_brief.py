@@ -84,7 +84,7 @@ s += [P("3 · Results on held-out 2021 (355 windows, organisers’ monsoon_r1.sc
         "0.67–1.01 (judge band 0.40–2.5). Warm-Bay shock passes all four causality checks (99% of day-1 response near the box). The zero shock is "
         "bit-identical. Schema validator 6/6, 0.09–0.16 s per 10-day call. Estimated automatic score ≈ 82 / 85 (full 2021 set).", small)]
 s += [P("4 · Failure modes and limits", h2)] + B([
-    "<b>Heavy rain:</b> a rain quantile map (fitted on 2015–2020) raised heavy-rain hits from CSI 6.7 to 13.6 of 15, at a small cost to rain accuracy at day 8. We kept the halfway strength.",
+    "<b>Heavy rain:</b> a rain quantile map (fitted on 2015–2020) raised heavy-rain CSI from 6.7 to 13.6 points (of 15), at a small cost to rain accuracy at day 8. We kept the halfway strength.",
     "<b>Monsoon-stall shock does not spread</b> by days 4–8 on our test window: its response stays near the Arabian Sea box and fades.",
     "<b>Day-8 rain</b> is sharper (blur ratio 0.67) but slightly less accurate than repeat-yesterday. <b>Domain-bound:</b> remote drivers (ENSO, the Atlantic) enter only via the grid state.",
 ])
