@@ -28,6 +28,11 @@ export const ADVICE = {
     dont: ['Do not walk or drive through flooded roads or underpasses', 'Do not touch fallen power lines or wet electrical fittings',
       'Do not shelter near rivers, slopes or weak walls'],
   },
+  cyclone: {
+    do: ['Follow IMD cyclone bulletins and district evacuation orders', 'Secure loose objects; keep phones charged and a radio ready',
+      'Fishermen: return to shore and do not venture out to sea'],
+    dont: ['Do not go out during the calm of the eye; winds return from the other side', 'Do not stay in weak or kutcha structures near the coast'],
+  },
   heat: {
     do: ['Drink water often, even if not thirsty; use ORS or lassi', 'Stay indoors 12–4 pm; wear light, loose, cotton clothes',
       'Check on elderly people, children and outdoor workers', 'Keep livestock in shade with water'],
@@ -41,6 +46,22 @@ const rainSeverity = r => r >= 204.5 ? 'Critical' : r >= 115.6 ? 'High' : r >= 6
 function heatSeverity(tC, anom) {
   if (!(tC >= 35 || (anom >= 4.5 && tC >= 30))) return null;
   return tC >= 40 || anom >= 7 ? 'Critical' : tC >= 37.5 || anom >= 6 ? 'High' : 'Moderate';
+}
+
+// cyclone risk: a low-pressure core (msl at least 4 hPa below the ring 3 cells away, and the lowest within 2 cells)
+// with strong daily-mean wind nearby (>= 12 m/s within 2 cells). Graded: >= 10 hPa and >= 17 m/s is High.
+// shortcut: 1-degree daily means smooth real cyclones; a screening flag, not an IMD cyclone classification.
+function cycloneAt(a, i, j) {
+  const P = (ii, jj) => a[4 * CELLS + idx(ii, jj)], p0 = P(i, j);
+  let ring = 0, n = 0, wmax = 0;
+  for (let di = -3; di <= 3; di++) for (let dj = -3; dj <= 3; dj++) {
+    const ii = i + di, jj = j + dj, r = Math.max(Math.abs(di), Math.abs(dj));
+    if (r <= 2) { if (P(ii, jj) < p0) return null; const k = idx(ii, jj); wmax = Math.max(wmax, Math.hypot(a[2 * CELLS + k], a[3 * CELLS + k])); }
+    else { ring += P(ii, jj); n++; }
+  }
+  const depth = (ring / n - p0) / 100;                       // hPa
+  if (depth < 4 || wmax < 12) return null;
+  return { sev: depth >= 10 && wmax >= 17 ? 'High' : 'Moderate', depth, wmax };
 }
 
 /** days: [day0..dayN] Float32Array(6*CELLS) physical; clim: [day1..dayN]; land: Float32Array(CELLS); risk: [day0..dayN] Float32Array(2*CELLS) or null */
@@ -65,6 +86,9 @@ export function generateAlerts(days, clim, land, risk) {
       const hs = heatSeverity(tC, anom);
       if (hs) add('heat', d, k, hs, tC);
       else if (r && r[CELLS + k] >= 0.5) add('heat', d, k, 'Low', tC);              // INDRA-Risk watch: >= 50% chance of heat stress
+    }
+    for (let i = 3; i < NLAT - 3; i++) for (let j = 3; j < NLON - 3; j++) {      // land or sea: storms matter before landfall
+      const cy = cycloneAt(a, i, j); if (cy) add('cyclone', d, idx(i, j), cy.sev, cy.wmax);
     }
   }
   return [...groups.values()].sort((x, y) => SEVERITIES.indexOf(x.severity) - SEVERITIES.indexOf(y.severity) || x.day - y.day || y.cells - x.cells);

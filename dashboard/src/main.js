@@ -207,7 +207,9 @@ function renderImpacts() {
     card('Crop water stress', fmt(P.cropStress), '%', '#f5b342', dTxt(P.cropStress, M?.cropStress, ' pts'), P.cropStress),
     card('Rain vs normal', (P.rainDeparture > 0 ? '+' : '') + fmt(P.rainDeparture, 0), '%', '#46d3ff', dTxt(P.rainDeparture, M?.rainDeparture, ' pts', 0), 50 + P.rainDeparture / 2),
     card('Wind power 100 m', fmt(P.windPower, 0), 'W/m²', '#3ddc97', dTxt(P.windPower, M?.windPower, ' W/m²', 0), P.windPower / 4),
-    card('Peak daily rain', fmt(P.peakRain, 0), 'mm', '#b23cff', dTxt(P.peakRain, M?.peakRain, ' mm', 0), P.peakRain / 3),
+    card('Peak daily rain', fmt(P.peakRain, 0), 'mm/day', '#b23cff', dTxt(P.peakRain, M?.peakRain, ' mm', 0), P.peakRain / 3),
+    card('Humid heat', fmt(P.humidHeat), '% land', '#ff8a3d', dTxt(P.humidHeat, M?.humidHeat, ' pts'), P.humidHeat, false, 'Peak-day share of land with humidex >= 40 (great discomfort). Daily-mean temperature with dew point estimated from column moisture: an approximate screening index.'),
+    card('Monsoon progress', `${fmt(P.rainTotal, 0)} / ${fmt(P.rainNormal, 0)}`, 'mm', '#2fb8ff', dTxt(P.rainTotal, M?.rainTotal, ' mm', 0) || `<div class="d">10-day rain vs normal</div>`, P.rainNormal > 0 ? P.rainTotal / P.rainNormal * 100 : 0, false, 'Cumulative 10-day land-mean rain against the normal for these dates.'),
     card('Ensemble confidence', ens ? fmt(ens.conf, 0) : '—', ens ? '%' : '', '#9c8fe0', ens ? `<div class="d">day-10 σ ${fmt(ens.sigma, 2)} ${LAYERS[ens.layer].unit} (${LAYERS[ens.layer].name.toLowerCase()})</div>` : `<div class="d">run the 5-member ensemble</div>`, ens?.conf, true, 'Agreement among the 5 perturbed runs (spread), not a measure of accuracy.'),
   ].join('');
   renderRisk(); renderChart(); renderCity(); renderState(); renderTicker();
@@ -640,8 +642,8 @@ function renderAlerts() {
   $('sevChips').onclick = e => { const v = e.target.closest('button')?.dataset.s; if (!v) return; sevOn.has(v) ? sevOn.delete(v) : sevOn.add(v); renderAlerts(); };
   const shown = all.filter(a => sevOn.has(a.severity) && f(a)).slice(0, 80);
   $('alertList').innerHTML = shown.length ? shown.map((a, n) => {
-    const what = a.type === 'rain' ? (a.severity === 'Low' ? 'Heavy-rain watch' : 'Heavy rain') : (a.severity === 'Low' ? 'Heat watch' : 'Heat stress');
-    const val = a.type === 'rain' ? `peak ${Math.round(a.value)} mm/day` : `daily mean up to ${a.value.toFixed(1)} °C`;
+    const what = a.type === 'cyclone' ? 'Cyclone risk' : a.type === 'rain' ? (a.severity === 'Low' ? 'Heavy-rain watch' : 'Heavy rain') : (a.severity === 'Low' ? 'Heat watch' : 'Heat stress');
+    const val = a.type === 'cyclone' ? `low-pressure core, wind up to ${a.value.toFixed(0)} m/s` : a.type === 'rain' ? `peak ${Math.round(a.value)} mm/day` : `daily mean up to ${a.value.toFixed(1)} °C`;
     const adv = ADVICE[a.type];
     return `<li data-n="${n}" style="--sc:${SEV_COL[a.severity]}"><div class="top"><span class="sev">${a.severity.toUpperCase()}</span><b>${what}</b>${a.status === 'new' ? '<span class="tag">NEW in multiverse</span>' : a.status === 'worse' ? '<span class="tag">MORE SEVERE</span>' : ''}</div>
       <div class="meta">Day +${a.day} · ${a.region} · ${val} · ${a.cells} cell${a.cells > 1 ? 's' : ''} (~${(a.cells * 12).toLocaleString('en-IN')}k km²)</div>
@@ -649,7 +651,7 @@ function renderAlerts() {
   }).join('') : `<li class="empty">No alerts match. ${all.length ? 'Try other filters.' : 'This universe has no heavy-rain or heat alerts.'}</li>`;
   $('alertList').onclick = e => {
     const a = shown[e.target.closest('li[data-n]')?.dataset.n]; if (!a) return;
-    setLayer(a.type === 'rain' ? 'tp' : 't2m'); stepDay(a.day - Math.round(S.day));
+    setLayer(a.type === 'rain' ? 'tp' : a.type === 'cyclone' ? 'msl' : 't2m'); stepDay(a.day - Math.round(S.day));
     S.view === 'globe' ? globe.flyTo(a.lat, a.lon, 2.0, 1.4) : map.flyTo(a.lat, a.lon, 7);
   };
 }

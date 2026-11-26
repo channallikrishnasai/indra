@@ -162,8 +162,8 @@ export function makeReport(r) {
   if (!al) { T('No heavy-rain or heat alerts in this universe.', M, y, { color: C.mut }); y += 6; }
   for (const a of r.alerts.list.slice(0, 26)) {
     room(7.5); pill(M, y, a.severity, SEV[a.severity], 17);
-    const what = a.type === 'rain' ? (a.severity === 'Low' ? 'Heavy-rain watch' : 'Heavy rain') : (a.severity === 'Low' ? 'Heat watch' : 'Heat stress');
-    const val = a.type === 'rain' ? `peak ${Math.round(a.value)} mm/day` : `daily mean up to ${a.value.toFixed(1)} C`;
+    const what = a.type === 'cyclone' ? 'Cyclone risk' : a.type === 'rain' ? (a.severity === 'Low' ? 'Heavy-rain watch' : 'Heavy rain') : (a.severity === 'Low' ? 'Heat watch' : 'Heat stress');
+    const val = a.type === 'cyclone' ? `low-pressure core, wind up to ${a.value.toFixed(0)} m/s` : a.type === 'rain' ? `peak ${Math.round(a.value)} mm/day` : `daily mean up to ${a.value.toFixed(1)} C`;
     T(`${what}  ·  day +${a.day}  ·  ${a.region}  ·  ${val}  ·  ${a.cells} cells${a.status === 'new' ? '  ·  NEW in multiverse' : a.status === 'worse' ? '  ·  MORE SEVERE' : ''}`, M + 20, y + 0.6, { size: 8.2, maxW: CW - 20 });
     y += 6.2;
   }
