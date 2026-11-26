@@ -509,16 +509,17 @@ async function tippingPoint() {
   if (!S.init) return toast('Wait for the forecast to load first.', 'info');
   const mask = stateMask(name), BOX = [8, 20, 82, 94], T = 64.5, last = S.init.subarray(2 * DAY, 3 * DAY);
   const peak = out => { let m = 0; for (let d = 1; d <= STEPS; d++) for (let k = 0; k < CELLS; k++) if (mask[k] && out[d][CELLS + k] > m) m = out[d][CELLS + k]; return m; };
-  const rainAt = async dK => { if (!dK) return peak(S.prime); const { delta } = buildPerturbation({ box: BOX, parts: [['t2m', dK]] }, last); return peak(await simulate(S.init, delta)); };
+  // warming + moisture rising 7% per K (Clausius-Clapeyron): warm air holds more water vapour, which is what makes heavy rain
+  const rainAt = async dK => { if (!dK) return peak(S.prime); const { delta } = buildPerturbation({ box: BOX, parts: [['t2m', dK], ['tcwv', 7 * dK]] }, last); return peak(await simulate(S.init, delta)); };
   setBusy(true, `searching the tipping point for ${name}…`);
   const out = $('tipOut'); out.hidden = false; let msg;
   try {
     let lo = 0, hi = 8;
     if (await rainAt(0) >= T) msg = `${name} already has heavy rain (≥ ${T} mm/day) in this forecast; no warming needed.`;
-    else if (await rainAt(hi) < T) msg = `${name} does not reach heavy rain even with +${hi} K over the Bay of Bengal (temperature only).`;
+    else if (await rainAt(hi) < T) msg = `${name} does not reach heavy rain even with +${hi} K over the Bay of Bengal (with moisture rising 7% per K).`;
     else {
       for (let i = 0; i < 9; i++) { const mid = (lo + hi) / 2; if (await rainAt(mid) >= T) hi = mid; else lo = mid; }
-      msg = `Tipping point: about <b>+${hi.toFixed(2)} K</b> over the Bay of Bengal (temperature only) brings heavy rain (≥ ${T} mm/day) to ${name} within 10 days.`;
+      msg = `Tipping point: about <b>+${hi.toFixed(2)} K</b> over the Bay of Bengal (with moisture rising 7% per K) brings heavy rain (≥ ${T} mm/day) to ${name} within 10 days.`;
     }
   } catch (e) { msg = `Could not run the search: ${e.message}`; }
   setBusy(false, `${S.modelName} · ready`);
