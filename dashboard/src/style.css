@@ -276,3 +276,9 @@ body.layout-focus #map3d .maplibregl-ctrl-top-right, body.layout-cinema #map3d .
 .lim li::before { content: "!"; position: absolute; left: 11px; top: 9px; width: 16px; height: 16px; border-radius: 50%; display: grid; place-items: center;
   font-size: 11px; font-weight: 700; color: #fff; background: var(--warm); }
 @media (max-width: 900px) { .steps { grid-template-columns: 1fr 1fr; } .steps li::after { display: none; } .good, .acols { grid-template-columns: 1fr; } }
+
+/* custom start date */
+.custom { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--line); }
+.custom label { display: block; color: var(--muted); font-size: 11px; margin-bottom: 5px; }
+.custom input[type=date] { flex: 1; background: var(--chip); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; color: var(--text); color-scheme: inherit; }
+.custom .hint b { color: var(--text); font-weight: 600; }

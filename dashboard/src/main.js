@@ -6,6 +6,8 @@ import { generateAlerts, diffAlerts, ADVICE, SEVERITIES } from './alerts.js';
 
 // ?api=http://host:port overrides; 127.0.0.1 avoids Windows' slow IPv6-first "localhost" lookup
 const API = new URLSearchParams(location.search).get('api') || `http://${!location.hostname || location.hostname === 'localhost' ? '127.0.0.1' : location.hostname}:8000`;
+// dashboard-only data helper (tools/window_server.py) for custom start dates; ?data=http://host:port overrides
+const DATA_API = new URLSearchParams(location.search).get('data') || 'http://127.0.0.1:8100';
 const STEPS = 10, DAY = 6 * CELLS, STD = [13.46, 7.55, 2.9, 2.43, 619, 20.49];
 const $ = id => document.getElementById(id);
 const store = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* private mode */ } } };
@@ -531,6 +533,44 @@ function toggleAbout(on) {
   requestAnimationFrame(tick);
 }
 
+// ---------------------------------------------------------------- custom start date (3 consecutive real days)
+const fmtDay = d => d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+const addDays = (iso, n) => { const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() + n); return d; };
+function customHint() {
+  const v = $('customDate').value; if (!v) return;
+  $('customHint').innerHTML = `Uses <b>${fmtDay(addDays(v, -2))}</b>, <b>${fmtDay(addDays(v, -1))}</b> and <b>${fmtDay(addDays(v, 0))}</b> → forecasts <b>${fmtDay(addDays(v, 1))} – ${fmtDay(addDays(v, 10))}</b>.`;
+}
+async function initCustomDate() {
+  try {
+    const r = await (await fetch(DATA_API + '/range')).json();
+    Object.assign($('customDate'), { min: r.first, max: r.last, value: r.last });
+    customHint();
+  } catch {
+    $('customDate').disabled = $('customGo').disabled = true;
+    $('customHint').innerHTML = 'Start the data helper to pick any date: <b>python tools/window_server.py</b>';
+  }
+}
+async function runCustomDate() {
+  const date = $('customDate').value; if (!date) return;
+  const existing = S.windows.findIndex(w => w.id === 'custom-' + date);
+  if (existing >= 0) return loadWindow(existing);
+  $('customGo').disabled = true;
+  try {
+    const res = await fetch(`${DATA_API}/window?date=${date}`);
+    if (!res.ok) throw new Error((await res.json()).detail || res.status);
+    const r = await res.json(), bin = atob(r.b64), bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    const block = new Float32Array(bytes.buffer), all = new Float32Array(S.winData.length + block.length);
+    all.set(S.winData); all.set(block, S.winData.length); S.winData = all;
+    S.windows.push({ id: 'custom-' + date, title: `Your dates · ${fmtDay(addDays(date, -2))} – ${fmtDay(addDays(date, 0))}`,
+      desc: `Your chosen start: 3 real days ending ${fmtDay(addDays(date, 0))}`, date, doy: r.doy, doy_sincos: r.doy_sincos });
+    const i = S.windows.length - 1;
+    $('windowSel').insertAdjacentHTML('beforeend', `<option value="${i}">${S.windows[i].title}</option>`);
+    await loadWindow(i);
+  } catch (e) { toast(`Could not load ${date}: ${e.message}`); }
+  finally { $('customGo').disabled = false; }
+}
+
 function initUI() {
   $('windowSel').innerHTML = S.windows.map((w, i) => `<option value="${i}">${w.title} · ${w.date}</option>`).join('');
   $('windowSel').onchange = e => loadWindow(+e.target.value);
@@ -566,6 +606,7 @@ function initUI() {
   $('cityGo').onclick = () => { if (!$('citySel').value) { $('citySel').value = '1'; renderCity(); }                // default: Mumbai
     const c = CITIES[$('citySel').value], fresh = !street.map; setView('street'); if (!fresh) street.flyToCity(c[1], c[2]); };
   $('optSat').onchange = e => street.setSatellite(e.target.checked);
+  $('customDate').oninput = customHint; $('customGo').onclick = runCustomDate; initCustomDate();
   $('alertsBtn').onclick = () => toggleAlerts(); $('alertsClose').onclick = () => toggleAlerts(false);
   for (const id of ['fState', 'fType', 'fStatus']) $(id).onchange = renderAlerts;
   $('playBtn').onclick = () => play();
