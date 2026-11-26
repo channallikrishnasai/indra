@@ -49,6 +49,7 @@ def main():
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--init", default="", help="start from this checkpoint (fine-tune)")
     ap.add_argument("--rain-w", type=float, default=1.5, help="loss weight on rain")
+    ap.add_argument("--feats", type=int, default=0, help="1: add terrain, coast and convergence/low-pressure features (new architecture)")
     ap.add_argument("--heavy-w", type=float, default=0.0, help="extra loss weight on target cells with rain >= 10 mm/day (real observations)")
     a = ap.parse_args()
     torch.manual_seed(a.seed); np.random.seed(a.seed)
@@ -59,7 +60,7 @@ def main():
     tr = years < a.val_from
     mean = z[tr].mean(axis=(0, 2, 3)); std = z[tr].std(axis=(0, 2, 3))
     clim = climatology(z[tr], doy[tr])
-    model = Indra(mean, std, static, clim, width=a.width)
+    model = Indra(mean, std, static, clim, width=a.width, feats=bool(a.feats))
     if a.init:
         model.load_state_dict(torch.load(a.init, map_location="cpu", weights_only=True)["state"])
     print(f"params {sum(p.numel() for p in model.net.parameters())/1e6:.2f}M  train days {tr.sum()}  val days {(~tr).sum()}")
