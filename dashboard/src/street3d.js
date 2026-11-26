@@ -12,6 +12,7 @@ const SAT = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/
 export class Street3D {
   constructor(container, fieldCanvas, { onHover, onPick }) {
     this.container = container; this.fieldCanvas = fieldCanvas; this.onHover = onHover; this.onPick = onPick; this.satellite = true;
+    this.rp = new Float32Array(1400 * 4);                      // rain drops: lat, lon, phase (0..1), speed
   }
 
   ensure() {
@@ -20,6 +21,7 @@ export class Street3D {
       container: this.container, style: STYLE, center: [80, 22], zoom: 4.2, pitch: 0, maxPitch: 80, maxZoom: 20,
       attributionControl: { compact: true }, antialias: true,
     });
+    this.initRain();
     m.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
     m.on('mousemove', e => this.onHover({ lat: e.lngLat.lat, lon: e.lngLat.lng, x: e.originalEvent.clientX, y: e.originalEvent.clientY }));
     m.on('mouseout', () => this.onHover(null));
@@ -50,7 +52,6 @@ export class Street3D {
     m.addSource('state', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
     m.addLayer({ id: 'state-fill', type: 'fill', source: 'state', paint: { 'fill-color': '#ffd166', 'fill-opacity': 0.07 } }, firstSymbol);
     m.addLayer({ id: 'state-line', type: 'line', source: 'state', paint: { 'line-color': '#ffd166', 'line-width': 2.4, 'line-opacity': 0.9 } }, firstSymbol);
-    this.initRain();
     m.setLight({ anchor: 'map', position: [1.4, 210, 35], intensity: 0.45 });
     this.setSatellite(this.satellite); this.setActive(!!this.active);
   }
@@ -73,7 +74,6 @@ export class Street3D {
   initRain() {
     this.rainCv = Object.assign(document.createElement('canvas'), { className: 'rainfx' });
     this.container.appendChild(this.rainCv);
-    this.rp = new Float32Array(1400 * 4);                      // per drop: lat, lon, phase (0..1), speed
     this.rainT = performance.now();
   }
   /** day = [6*CELLS] physical for the current forecast day; only precipitation and wind are used */
