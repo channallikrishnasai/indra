@@ -75,18 +75,18 @@ s += [P("2 · How we prevent drift and blur", h2)] + B([
 ])
 s += [P("3 · Results on held-out 2021 (355 windows, organisers’ monsoon_r1.scoring)", h2),
       table([["Lead", "t2m", "tp", "u10", "v10", "msl", "tcwv", "Mean skill", "CSI ≥ 10 mm/day (INDRA / persist / clim)"],
-             ["Day 1", ".205", ".271", ".256", ".303", ".328", ".297", "<b>.277</b>", "<b>.51</b> / .43 / .26"],
-             ["Day 4", ".142", ".059", ".109", ".099", ".104", ".174", "<b>.115</b>", "<b>.27</b> / .21 / .26"],
-             ["Day 8", ".046", ".021", ".015", ".013", ".026", ".038", "<b>.026</b>", "<b>.25</b> / .20 / .26"]],
+             ["Day 1", ".205", ".276", ".256", ".303", ".328", ".297", "<b>.278</b>", "<b>.53</b> / .43 / .26"],
+             ["Day 4", ".142", ".036", ".109", ".099", ".104", ".174", "<b>.111</b>", "<b>.31</b> / .21 / .26"],
+             ["Day 8", ".046", "-.041", ".015", ".013", ".026", ".038", "<b>.016</b>", "<b>.28</b> / .20 / .26"]],
             [13 * mm, 12 * mm, 12 * mm, 12 * mm, 12 * mm, 12 * mm, 12 * mm, 19 * mm, 66 * mm]),
       Spacer(1, 1.5),
-      P("Skill = 1 − RMSE / RMSE of the better of repeat-yesterday and climatology: positive on every channel and lead. Day-8 variance ratio "
-        "0.42–1.01 (judge band 0.40–2.5). Warm-Bay shock passes all four causality checks (99% of day-1 response near the box). The zero shock is "
-        "bit-identical. Schema validator 6/6, 0.09–0.16 s per 10-day call. Estimated automatic score ≈ 75 / 85 (full 2021 set).", small)]
+      P("Skill = 1 − RMSE / RMSE of the better of repeat-yesterday and climatology: positive on every channel and lead except rain at day 8 (−0.04). Day-8 variance ratio "
+        "0.67–1.01 (judge band 0.40–2.5). Warm-Bay shock passes all four causality checks (99% of day-1 response near the box). The zero shock is "
+        "bit-identical. Schema validator 6/6, 0.09–0.16 s per 10-day call. Estimated automatic score ≈ 82 / 85 (full 2021 set).", small)]
 s += [P("4 · Failure modes and limits", h2)] + B([
-    "<b>Heavy rain fades after day 1:</b> days 4 and 8 beat persistence but only tie climatology. A rain-weighted fine-tune raised heavy-rain CSI from 6.4 to 6.7 of 15 with RMSE unchanged.",
+    "<b>Heavy rain:</b> a rain quantile map (fitted on 2015–2020) raised heavy-rain hits from CSI 6.7 to 13.6 of 15, at a small cost to rain accuracy at day 8. We kept the halfway strength.",
     "<b>Monsoon-stall shock does not spread</b> by days 4–8 on our test window: its response stays near the Arabian Sea box and fades.",
-    "<b>Day-8 rain detail</b> (0.42) sits just above the 0.40 blur floor. <b>Domain-bound:</b> remote drivers (ENSO, the Atlantic) enter only via the grid state.",
+    "<b>Day-8 rain</b> is sharper (blur ratio 0.67) but slightly less accurate than repeat-yesterday. <b>Domain-bound:</b> remote drivers (ENSO, the Atlantic) enter only via the grid state.",
 ])
 s += [P("5 · System architecture", h2), arch()]
 s.append(PageBreak())

@@ -49,6 +49,7 @@ def main():
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--init", default="", help="start from this checkpoint (fine-tune)")
     ap.add_argument("--rain-w", type=float, default=1.5, help="loss weight on rain")
+    ap.add_argument("--heavy-w", type=float, default=0.0, help="extra loss weight on target cells with rain >= 10 mm/day (real observations)")
     a = ap.parse_args()
     torch.manual_seed(a.seed); np.random.seed(a.seed)
     torch.set_num_threads(max(1, torch.get_num_threads()))
@@ -79,7 +80,11 @@ def main():
         return x, y, D[idx]
 
     def loss_fn(pred, y):
-        return (((pred - y) ** 2) * w[:, None] * chw[:, None]).mean()
+        base = ((pred - y) ** 2) * w[:, None] * chw[:, None]
+        if a.heavy_w:                                  # heavier loss on real heavy-rain days (rain channel is log1p, normalised)
+            r = y[:, :, 1] * model.std[0, 1] + model.mean[0, 1]
+            base = base * (1 + a.heavy_w * (r > math.log1p(10.0)).float()[:, :, None])
+        return base.mean()
 
     @torch.no_grad()
     def val(K=8):
