@@ -108,6 +108,7 @@ export async function openEnsAudit(kind, S) {
     </div>`;
   el.hidden = false; el.classList.remove('in'); void el.offsetWidth; el.classList.add('in');
   $('eaClose').onclick = () => closeEnsAudit();
+  el.onclick = e => { if (e.target === el) closeEnsAudit(); };      // click outside the panel also closes it
   const stage = $('eaStage');                              // gentle 3D tilt toward the pointer
   el.onpointermove = e => {
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
