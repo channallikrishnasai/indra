@@ -110,8 +110,8 @@ p1 = []
 p1 += [P("<font size=21><b>INDRA: a climate digital twin of India</b></font>", ParagraphStyle("t", fontName="AB", fontSize=21, leading=24, textColor=INK)),
        P("Five futures of the monsoon from one causal model. Simulate the next 10 days from the last 3 observed days, then branch alternate universes from a local shock.", ParagraphStyle("st", parent=body, textColor=MUT, fontSize=9.6, leading=12.5)),
        Spacer(1, 5)]
-p1 += [callout("<b>USP.</b> INDRA is <b>causal by construction</b>: 0.53 M parameters, a receptive field of 7 grid cells per day, so a shock "
-               "cannot travel faster than about 7° a day. It stays local on day one and spreads afterwards, and a zero shock changes nothing. "
+p1 += [callout("<b>USP.</b> INDRA is <b>causal by construction</b>: 0.53 M parameters, a receptive field of 7 grid cells per day, so by design a shock "
+               "spreads at most about 7 grid cells per day. It stays local on day one and spreads afterwards, and a zero shock changes nothing. "
                "Calibration and a rain map keep long rollouts sharp and on climate, and every forecast drives a live dashboard, not a pre-rendered result.")]
 p1 += [Spacer(1, 6), kpi_row([
     ("0.278 · 0.111 · 0.016", "RMSE skill, days 1·4·8 (2021)", ACC),
@@ -123,7 +123,7 @@ p1 += [h("1 · Model design")]
 p1 += B([
     "<b>Input:</b> the last three days × six channels (t2m, tp, u10, v10, msl, tcwv; rain as log(1+rain)), the target day’s climatology, land/sea mask, orography, day-of-year and lat/lon.",
     "<b>Network:</b> a 3×3 stem, three residual blocks (two 3×3 convolutions each, GroupNorm, GELU) and a 1×1 head. It predicts the <i>tendency</i>, added to the last state.",
-    "<b>Hard physical limits on every output:</b> rain ≥ 0, moisture ≥ 0, t2m within −40 … +60 °C. An all-zero shock reproduces the no-shock run exactly.",
+    "<b>Hard physical limits on every output:</b> rain ≥ 0, moisture ≥ 0, t2m within −40 … +60 °C. An all-zero shock reproduces the no-shock run (measured difference 0.0).",
     "<b>Training (CPU, about 1.5 h):</b> single-step teacher forcing, then a 2 → 4 → 6-step autoregressive rollout curriculum, latitude-weighted MSE. Years 2005–2020 train; <b>2021 is held out</b>.",
 ])
 p1 += [Spacer(1, 3), arch(), Spacer(1, 1)]
@@ -132,8 +132,8 @@ p1 += B([
     "<b>Rollout training</b> teaches the model to correct its own errors: validation day-8 error fell from 0.590 after single-step training to 0.496 after the 6-step curriculum (normalised).",
     "<b>Per-lead calibration:</b> each lead is shrunk towards climate, α fitted by least squares on training years only. Rain is fitted in mm/day, so heavy rain survives. "
     "A rain quantile map (half strength) lifts the heavy-rain CSI score from 6.7 to 13.6 points of 15 (commit d8dd318); the full 2021 run now gives 13.7.",
-    "<b>Blur check:</b> day-8 spatial variance is 0.68–1.01 of the real field for every channel (judge band 0.40–2.5), and all four causality checks pass for the warm-ocean shock.",
-    "<b>Multiverse</b> = calib(F(x)) + [F(x + shock) − F(x)]: calibration never mutes a shock, and the shock’s own response is kept whole.",
+    "<b>Blur check:</b> day-8 spatial variance is 0.68–1.01 of the real field for every channel (judge band 0.40–2.5), and all four causality checks pass for the warm-ocean shock on the 15 July 2021 window.",
+    "<b>Multiverse</b> = calib(F(x)) + [F(x + shock) − F(x)]: calibration is applied to the forecast only, so it does not damp the shock response.",
 ])
 p1 += [h("3 · Results on held-out 2021 (355 windows, the organisers’ monsoon_r1 scoring code)")]
 rows = [["Lead", "t2m", "tp (rain)", "u10", "v10", "msl", "tcwv", "Mean skill", "Heavy-rain CSI, 10 mm/day (INDRA / persist / clim)"],
@@ -160,7 +160,7 @@ p1 += [Spacer(1, 2), Image(str(ROOT / "docs" / "chart-csi-2021.png"), width=118 
 p2 = []
 p2 += [h("5 · Track 2 requirements and where they are met")]
 req = [["Requirement (track brief)", "Evidence in this repo"],
-       ["Stable rollouts, 10 steps or more, no NaN or Inf, rain never negative", "Validator 6/6 (10-step calls, dry runs, base64 and list formats); hard limits in net.py; every 2021 window passes validity"],
+       ["Stable rollouts, 10 steps or more, no NaN or Inf, rain never negative", "Validator 6/6 (health, and 10-step /simulate calls in list and base64 formats); hard limits in net.py; every 2021 window passes validity"],
        ["Real weather skill: beat repeat-yesterday and climatology, including heavy rain", "Table in section 3: day 4 and day 8 beat both on the skill score (day 8 rain is the stated exception)"],
        ["Causal shocks: local first, then outward; a zero shock changes nothing", "Warm-ocean shock passes all four checks; monsoon-stall is documented as incomplete; zero shock 0.0 difference"],
        ["Real impact: dashboard and impact module driven by our own simulation", "Dashboard calls /simulate live; impact cards, state audit, validation panel, ensemble audit"],
