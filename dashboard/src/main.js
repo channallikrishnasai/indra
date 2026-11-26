@@ -357,6 +357,17 @@ function setLayer(k, quiet) {
   if (S.mode === 'spread') { S.spread = null; S.spreadSummary = null; S.mode = 'prime'; }
   if (!quiet) { setMode(S.mode === 'truth' && LAYERS[k].ml ? 'prime' : S.mode); renderChart(); }
 }
+// "All layers": step through the five weather layers, one every 4 s; any single layer click stops it
+const CYCLE = ['t2m', 'tp', 'wind', 'msl', 'tcwv'];
+let cycleT = null;
+function stopCycle() { clearInterval(cycleT); cycleT = null; $('layerChips').querySelector('.allchip').textContent = 'All layers ▶'; $('layerChips').querySelector('.allchip').classList.remove('on'); }
+function cycleLayers() {
+  if (cycleT) return stopCycle();
+  let i = Math.max(0, CYCLE.indexOf(S.layer));
+  const step = () => { setLayer(CYCLE[i]); i = (i + 1) % CYCLE.length; };
+  $('layerChips').querySelector('.allchip').textContent = 'Stop ■'; $('layerChips').querySelector('.allchip').classList.add('on');
+  step(); cycleT = setInterval(step, 4000);
+}
 function setView(v) {
   S.view = v; document.body.classList.toggle('view-map', v === 'map'); document.body.classList.toggle('view-street', v === 'street');
   globe.active = v === 'globe'; map.active = v === 'map'; street.setActive(v === 'street');
@@ -675,8 +686,8 @@ async function runCustomDate() {
 function initUI() {
   $('windowSel').innerHTML = S.windows.map((w, i) => `<option value="${i}">${w.title} · ${w.date}</option>`).join('');
   $('windowSel').onchange = e => loadWindow(+e.target.value);
-  $('layerChips').innerHTML = Object.entries(LAYERS).map(([k, L]) => `<button data-l="${k}" class="${k === S.layer ? 'on' : ''}${L.ml ? ' ml' : ''}">${L.name}</button>`).join('');
-  $('layerChips').onclick = e => { const k = e.target.dataset.l; if (k) setLayer(k); };
+  $('layerChips').innerHTML = `<button data-l="all" class="allchip">All layers ▶</button>` + Object.entries(LAYERS).map(([k, L]) => `<button data-l="${k}" class="${k === S.layer ? 'on' : ''}${L.ml ? ' ml' : ''}">${L.name}</button>`).join('');
+  $('layerChips').onclick = e => { const k = e.target.dataset.l; if (!k) return; if (k === 'all') return cycleLayers(); stopCycle(); setLayer(k); };
   $('presets').innerHTML = Object.entries(PRESETS).map(([k, p]) => `<button data-p="${k}">${p.name}<small>${p.sub}</small></button>`).join('');
   $('presets').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.preset = b.dataset.p; const p = PRESETS[S.preset]; if (!p.custom && !p.box) { $('shockLat').value = p.lat; $('shockLon').value = p.lon; $('shockRad').value = p.radius; $('shockVar').value = p.parts[0][0]; $('shockMag').value = p.parts[0][1]; } syncShockUI(); };
   $('shockVar').onchange = () => { $('shockMag').value = VARS[$('shockVar').value].def; S.preset = 'custom'; syncShockUI(); };
