@@ -1,9 +1,9 @@
 import { NC, NLAT, NLON, CELLS, LAYERS, LAT0, LON0, BBOX, TEX_W, TEX_H, CLOUD_W, CLOUD_H, idx, layerGrid, lerpDay, paintField, paintClouds, paintLegend, bilinear, inDomain } from './field.js';
-import { Globe } from './globe.js';
+import { Globe, ll2v } from './globe.js';
 import { Map2D, CITIES } from './map2d.js';
 import { impacts, landMeanSeries, propagation } from './impact.js';
 import { generateAlerts, diffAlerts, ADVICE, SEVERITIES } from './alerts.js';
-import { loadStates, stateAt, stateStats, stateFeature, bboxOf } from './state.js';
+import { loadStates, stateAt, stateStats, stateFeature, stateMask, bboxOf } from './state.js';
 
 // ?api=http://host:port overrides; 127.0.0.1 avoids Windows' slow IPv6-first "localhost" lookup
 const API = new URLSearchParams(location.search).get('api') || `http://${!location.hostname || location.hostname === 'localhost' ? '127.0.0.1' : location.hostname}:8000`;
@@ -294,6 +294,59 @@ async function loadWindow(i) {
 }
 
 // several shocks: their physical changes are added together (a linear approximation; one /simulate call)
+// ---- live briefing: what happened, how risky, and pins on the three strongest changes
+const RISK_COL = { Low: '#4c8bf5', Moderate: '#e8b923', High: '#f08c2e', Critical: '#e5484d' };
+let pinEls = [];
+function showBrief(html) { $('brief').innerHTML = html; $('brief').hidden = false; }
+function briefing(sh) { showBrief(`<b>${sh.name}</b><span>Simulating the next 10 days…</span><div class="prog"><i></i></div>`); }
+function computeBrief() {
+  if (!S.multi || !S.shock || !S.land) return null;
+  const cells = [];
+  for (let k = 0; k < CELLS; k++) {
+    if (S.land[k] <= 0.5) continue;
+    let dT = 0, dR = 0;
+    for (let d = 1; d <= STEPS; d++) { dT += S.multi[d][k] - S.prime[d][k]; dR += S.multi[d][CELLS + k] - S.prime[d][CELLS + k]; }
+    dT /= STEPS; dR /= STEPS;
+    if (Math.abs(dT) > 0.3 || Math.abs(dR) > 2) cells.push({ k, dT, dR, mag: Math.abs(dT) / 0.3 + Math.abs(dR) / 2 });
+  }
+  const lat = k => LAT0 + Math.floor(k / NLON), lon = k => LON0 + k % NLON;
+  const near = [...cells].sort((a, b) => b.mag - a.mag).slice(0, 3);
+  const states = {};
+  for (const c of cells.filter((_, i) => i % 3 === 0)) { const s = stateAt(lat(c.k), lon(c.k)) || 'open sea / neighbours'; states[s] = (states[s] || 0) + 1; }
+  const top = Object.entries(states).sort((a, b) => b[1] - a[1]).slice(0, 4).map(x => x[0]);
+  const fresh = (S.alertsMulti || []).filter(a => a.status === 'new' || a.status === 'worse');
+  const crit = fresh.filter(a => a.severity === 'Critical').length, high = fresh.filter(a => a.severity === 'High').length;
+  const risk = crit ? 'Critical' : high >= 10 ? 'High' : high || fresh.length ? 'Moderate' : 'Low';
+  const meanT = cells.length ? cells.reduce((s, c) => s + c.dT, 0) / cells.length : 0, meanR = cells.length ? cells.reduce((s, c) => s + c.dR, 0) / cells.length : 0;
+  const area = cells.length * 111.2 * 111.2 / 1000;   // rough: one cell ~ 111 x 111 km
+  const reason = { Low: 'small change, few new warnings', Moderate: 'new warnings in places that had none', High: 'many new High warnings: act on the forecast', Critical: 'Critical warnings: serious danger' }[risk];
+  return { name: S.shock.name, cells: cells.length, area, meanT, meanR, top, risk, reason, high, crit, fresh: fresh.length, pins: near.map(c => ({ lat: lat(c.k), lon: lon(c.k), label: stateAt(lat(c.k), lon(c.k)) || 'Bay / sea' })) };
+}
+function renderBrief(b) {
+  if (!b) return showBrief('<b>No change detected</b><span>The shock barely moved the forecast over this area.</span>');
+  const sign = v => (v > 0 ? '+' : '') + v.toFixed(1);
+  showBrief(`<div class="bhead"><b>${b.name}</b><span class="risk" style="--rc:${RISK_COL[b.risk]}">${b.risk} risk</span></div>
+    <p><b>What happened:</b> over 10 days, temperature changes by <b>${sign(b.meanT)} °C</b> and rain by <b>${sign(b.meanR)} mm/day</b> on average across about <b>${b.cells} grid cells</b> (roughly ${Math.round(b.area / 1000 * 1000)} thousand km²).</p>
+    <p><b>Most affected:</b> ${b.top.join(', ') || 'none'}.</p>
+    <p><b>How risky:</b> ${b.reason}. New or worse warnings: ${b.fresh} (${b.high} High, ${b.crit} Critical).</p>
+    <p class="small">Pins mark the three strongest changes. Averages are over the land cells that changed; this is a research forecast, not an official warning.</p>`);
+  pinEls.forEach(e => e.remove()); pinEls = [];
+  for (const pnt of b.pins) { const el = document.createElement('div'); el.className = 'pin'; el.innerHTML = `<i></i><span>${pnt.label}</span>`; $('pins').appendChild(el); pinEls.push(el); el.pts = pnt; }
+}
+// keep pins on the place they mark, hidden when they face away from the globe
+function updatePins() {
+  if (!pinEls.length || (S.view !== 'globe' && S.view !== 'map')) { pinEls.forEach(e => (e.style.display = 'none')); return; }
+  const W = innerWidth, H = innerHeight;
+  for (const e of pinEls) {
+    const { lat, lon } = e.pts; let x, y, show = true;
+    if (S.view === 'map') { x = map.x(lon); y = map.y(lat); }
+    else {
+      const v = ll2v(lat, lon, 1.02), n = v.clone().normalize(), front = n.dot(globe.camera.position.clone().normalize()) > 0.15;
+      const q = v.clone().project(globe.camera); x = (q.x + 1) / 2 * W; y = (1 - q.y) / 2 * H; show = front;
+    }
+    e.style.display = show ? '' : 'none'; e.style.transform = `translate(${x | 0}px, ${y | 0}px)`;
+  }
+}
 async function runMultiverse() {
   const shocks = S.shockList.length ? S.shockList : [currentShock()], last = S.init.subarray(2 * DAY, 3 * DAY);
   const delta = new Float32Array(DAY); let touched = 0;
@@ -301,7 +354,8 @@ async function runMultiverse() {
   const sh = { ...shocks[0], name: shocks.map(x => x.name).join(' + ') };
   if (!touched) return warnShock(true);
   setBusy(true, `branching universe: ${sh.name}…`);
-  try { S.multi = await simulate(S.init, delta); S.shock = sh; } catch (e) { toast(e.message); setBusy(false); return; }
+  briefing(sh);
+  try { S.multi = await simulate(S.init, delta); S.shock = sh; S.brief = computeBrief(); renderBrief(S.brief); } catch (e) { toast(e.message); setBusy(false); return; }
   setBusy(false, `${S.modelName} · ready`);
   globe.setShock(sh); map.setShock(sh);
   if (S.view === 'globe' && !S.tour) globe.flyTo(sh.lat, sh.lon, 2.3, 1.6);
@@ -733,6 +787,7 @@ function initUI() {
     fieldDirty = true;
   };
   $('optRotate').onchange = e => { globe.autoRotate = e.target.checked || S.layout === 'cinema'; };
+  $('cloudBtn').onclick = () => { const c = $('optClouds'); c.checked = !c.checked; c.dispatchEvent(new Event('change')); $('cloudBtn').setAttribute('aria-pressed', c.checked); $('cloudBtn').classList.toggle('on', c.checked); };
   $('themeBtn').onclick = e => setTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light', e);
   $('tourBtn').onclick = tour; $('snapBtn').onclick = snapshot; $('reportBtn').onclick = downloadReport;
   $('aboutBtn').onclick = () => toggleAbout(); $('aboutClose').onclick = () => toggleAbout(false); $('about').onclick = e => { if (e.target.id === 'about') toggleAbout(false); };
@@ -788,6 +843,7 @@ function loop(now) {
   }
   globe.frame(dt, frameOpts());
   map.frame(dt, S.opts.wind, S.opts.clouds, fieldDirty); fieldDirty = false;
+  updatePins();
   requestAnimationFrame(loop);
 }
 

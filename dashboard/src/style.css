@@ -346,3 +346,20 @@ body.layout-focus #map3d .maplibregl-ctrl-top-right, body.layout-cinema #map3d .
 .tipbtn { margin-top: 8px; width: 100%; }
 .tip { margin: 8px 0 0; padding: 9px 11px; border-radius: 10px; border: 1px solid var(--line); background: var(--glass-hi); line-height: 1.45; font-size: 12.5px; }
 .tip b { color: var(--warm); }
+
+/* live briefing card and pins */
+.brief { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); width: min(560px, calc(100vw - 680px)); min-width: 300px; padding: 12px 15px; z-index: 6; font-size: 12.8px; line-height: 1.45; animation: pop .35s var(--ease); }
+.brief p { margin: 5px 0 0; }
+.brief .small { color: var(--muted); font-size: 11px; }
+.brief .bhead { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.brief .bhead b { font-size: 15px; }
+.brief .risk { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; color: #fff; background: var(--rc); letter-spacing: .03em; }
+.brief .prog { height: 3px; border-radius: 2px; background: var(--chip); overflow: hidden; margin-top: 8px; }
+.brief .prog i { display: block; height: 100%; width: 40%; background: linear-gradient(90deg, var(--accent2), var(--accent)); animation: scanbar 1.2s ease-in-out infinite; }
+@keyframes scanbar { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
+#pins { position: fixed; inset: 0; pointer-events: none; z-index: 4; }
+.pin { position: absolute; left: 0; top: 0; will-change: transform; }
+.pin i { position: absolute; left: -7px; top: -7px; width: 14px; height: 14px; border-radius: 50%; background: #ff7a45; box-shadow: 0 0 0 3px rgba(255,122,69,.35), 0 0 18px #ff7a45; animation: pinpulse 1.6s ease-out infinite; }
+.pin span { position: absolute; left: 12px; top: -10px; white-space: nowrap; font-size: 11px; padding: 2px 7px; border-radius: 6px; background: rgba(7,14,26,.8); color: #fff; }
+@keyframes pinpulse { 0% { box-shadow: 0 0 0 0 rgba(255,122,69,.6); } 100% { box-shadow: 0 0 0 16px rgba(255,122,69,0); } }
+#cloudBtn.on { background: color-mix(in srgb, var(--accent) 25%, transparent); }

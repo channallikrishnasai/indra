@@ -69,6 +69,9 @@
       <button class="icon round" id="aboutBtn" title="About the model (i)" aria-label="About the model">
         <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" /></svg>
       </button>
+      <button class="icon round" id="cloudBtn" title="Clouds on / off" aria-label="Toggle clouds" aria-pressed="true">
+        <svg viewBox="0 0 24 24"><path d="M7 18a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 9.5a4 4 0 0 1 .5 7.96V18H7z" /></svg>
+      </button>
       <button class="icon round" id="snapBtn" title="Save snapshot (s)"><svg viewBox="0 0 24 24"><path d="M9 3 7.2 5H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.2L15 3H9zm3 14a5 5 0 1 1 0-10 5 5 0 0 1 0 10z" /></svg></button>
       <button class="icon round theme" id="themeBtn" title="Light / dark (d)" aria-label="Toggle light or dark theme">
         <svg class="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5" /><path d="M12 1v3M12 20v3M1 12h3M20 12h3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" stroke-width="2" stroke-linecap="round" /></svg>
@@ -194,6 +197,8 @@
   </footer>
 
   <div id="caption" class="glass" hidden></div>
+  <div id="brief" class="glass brief" aria-live="polite" hidden></div>
+  <div id="pins" aria-hidden="true"></div>
   <div id="tooltip" class="glass" hidden></div>
   <div id="toast" hidden></div>
   <div id="about" hidden>
