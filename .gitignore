@@ -3,3 +3,5 @@ __pycache__/
 node_modules/
 dashboard/dist/
 *.log
+dashboard/public/windows.bin
+dashboard/public/windows.json

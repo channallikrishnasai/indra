@@ -15,7 +15,7 @@ repo/
 ├── evaluate.py           offline scoring with the organisers' monsoon_r1.scoring
 ├── weights/indra.pt      trained weights (+ normalisation, static fields, climatology, calibration)
 ├── weights/risk.pt       INDRA-Risk weights (optional: /simulate never depends on it)
-├── tools/make_windows.py builds the dashboard's demo initial states
+├── tools/make_windows.py builds the dashboard's demo initial states locally (git-ignored output)
 └── dashboard/            Vite + three.js + d3-geo front end (separate from the server)
 ```
 
@@ -29,7 +29,10 @@ python -m monsoon_r1.schema_validator http://127.0.0.1:8000
 
 ## Dashboard
 
+The dashboard's demo starting states are **not shipped** in this repo (no archive of past weather). Generate them from the kit data once, before the demo. The server never reads them:
+
 ```bash
+python tools/make_windows.py --data data/india_climate_train.nc   # writes dashboard/public/windows.* (git-ignored)
 cd dashboard
 npm install
 npm run dev          # http://localhost:5173 (server expected on :8000)

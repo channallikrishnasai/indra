@@ -464,7 +464,10 @@ async function boot() {
   msg('Loading Earth & borders…');
   await Promise.all([globe.loadBorders(), map.loadBorders()]);
   msg('Loading initial-condition windows…');
-  const meta = await (await fetch('/windows.json')).json();
+  const res = await fetch('/windows.json');
+  // demo initial states are generated locally (not shipped): python tools/make_windows.py
+  if (!res.ok) { msg('No demo windows found. Run: python tools/make_windows.py --data data/india_climate_train.nc, then reload.'); return; }
+  const meta = await res.json();
   S.windows = meta.windows; S.winData = new Float32Array(await (await fetch('/windows.bin')).arrayBuffer());
   initUI(); requestAnimationFrame(loop);
   msg('Connecting to the INDRA engine…');
