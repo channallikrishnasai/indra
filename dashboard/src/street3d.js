@@ -65,7 +65,8 @@ export class Street3D {
     await this.ensure();
     const m = this.map;
     m.getSource('state').setData({ type: 'FeatureCollection', features: feature ? [feature] : [] });
-    m.stop(); m.fitBounds(bbox, { padding: { top: 70, bottom: 110, left: 60, right: 380 }, pitch: 55, bearing: -18, maxZoom: 9.5, duration: 3600, essential: true });
+    m.stop(); m.fitBounds(bbox, { padding: { top: 70, bottom: 110, left: 60, right: 380 }, maxZoom: 9.5, duration: 3600, essential: true });
+    m.once('moveend', () => m.easeTo({ pitch: 58, bearing: -18, duration: 2600 }));          // then tilt into the 3D view
   }
 
   // ---- rain: streaks anchored to the grid cells where the forecast has rain, falling over the 3D streets

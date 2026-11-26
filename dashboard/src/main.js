@@ -356,7 +356,11 @@ function setLayer(k, quiet) {
 function setView(v) {
   S.view = v; document.body.classList.toggle('view-map', v === 'map'); document.body.classList.toggle('view-street', v === 'street');
   globe.active = v === 'globe'; map.active = v === 'map'; street.setActive(v === 'street');
-  if (v === 'street' && !street.map) street.ensure().then(() => { street.setActive(S.view === 'street'); const c = CITIES[$('citySel').value]; c ? street.flyToCity(c[1], c[2]) : street.overview(); });
+  if (v === 'street' && !street.map) street.ensure().then(() => {
+    street.setActive(S.view === 'street');
+    if (S.state) return street.flyToState(S.state);                   // a chosen state keeps its own view
+    const c = CITIES[$('citySel').value]; c ? street.flyToCity(c[1], c[2]) : street.overview();
+  });
   for (const b of $('viewSeg').children) b.classList.toggle('on', b.dataset.view === v);
   if (v === 'map' && !map.flown) { map.flown = true; map.flyTo(21, 82, 4.2); }
   fieldDirty = true;
