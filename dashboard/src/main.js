@@ -467,6 +467,7 @@ function computeAlerts() {
 }
 function renderAlerts() {
   if (!S.alertsPrime) return;
+  renderTicker();                                                  // the ticker shows the alert count
   const multi = S.alertsMulti && (S.mode === 'multi' || S.mode === 'delta'), all = multi ? S.alertsMulti : S.alertsPrime;
   const urgent = all.filter(a => a.severity === 'Critical' || a.severity === 'High').length, b = $('alertsBadge');
   b.hidden = !all.length; b.textContent = all.length; b.classList.toggle('calm', !urgent);

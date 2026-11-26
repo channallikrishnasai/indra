@@ -18,6 +18,7 @@
   color-scheme: light;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }   /* our display rules must never un-hide an element */
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); overflow: hidden; font-size: 13px; }
 button, select, input { font: inherit; color: inherit; }
 
@@ -74,7 +75,7 @@ body.view-map #globe { opacity: 0; pointer-events: none; transform: scale(.92); 
 .status.err i { background: var(--bad); box-shadow: 0 0 10px var(--bad); }
 .status span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.panel { position: fixed; top: 78px; bottom: 104px; width: 300px; overflow-y: auto; padding: 6px 14px 14px; z-index: 4; scrollbar-width: thin;
+.panel { position: fixed; top: 78px; bottom: 134px; width: 300px; overflow-y: auto; padding: 6px 14px 14px; z-index: 4; scrollbar-width: thin;
   transition: transform .7s var(--ease), opacity .5s, background .5s, border-color .5s; }
 .panel.left { left: 12px; }
 .panel.right { right: 12px; width: 330px; }
@@ -171,7 +172,9 @@ button:disabled { opacity: .5; cursor: progress; }
 .ring { width: 56px; height: 56px; border-radius: 50%; border: 3px solid rgba(70,211,255,.15); border-top-color: #46d3ff; animation: spin 1s linear infinite; box-shadow: 0 0 30px rgba(70,211,255,.25); }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-@media (max-width: 1280px) { .icon span { display: none; } .icon { width: 36px; padding: 0; justify-content: center; } .status { display: none; } }
+.brand { flex: none; }
+@media (max-width: 1700px) { .icon span { display: none; } .icon { width: 36px; padding: 0; justify-content: center; position: relative; } .status { display: none; } .icon .badge { display: grid; position: absolute; top: -6px; right: -6px; } }
+@media (max-width: 1320px) { .brand div { display: none; } .seg button { padding: 6px 8px; } }
 @media (max-width: 1100px) { .panel.right { display: none; } #modeSeg button { padding: 6px 8px; } }
 @media (max-width: 760px) {
   .panel.left { top: auto; bottom: 104px; height: 40vh; width: auto; right: 12px; }
@@ -327,7 +330,6 @@ body.layout-focus #map3d .maplibregl-ctrl-top-right, body.layout-cinema #map3d .
 .panel section { position: relative; }
 .glass::before { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
   background: linear-gradient(180deg, rgba(255,255,255,.07), transparent 40%); }
-.glass { position: relative; }
 .logo { animation: pulseGlow 3.2s ease-in-out infinite; }
 @keyframes pulseGlow { 50% { filter: drop-shadow(0 0 14px rgba(70,211,255,.9)); } }
 .ticks span { cursor: pointer; transition: color .2s, transform .2s; padding: 2px 4px; border-radius: 6px; }
