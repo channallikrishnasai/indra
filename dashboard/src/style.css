@@ -179,3 +179,29 @@ button:disabled { opacity: .5; cursor: progress; }
   .legendbar { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* alerts drawer: slides in over the right panel */
+.badge { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: #e5484d; color: #fff; font-size: 10.5px; display: grid; place-items: center; margin-left: 2px; }
+.badge.calm { background: var(--muted); }
+.drawer { right: 12px; width: 380px; z-index: 7; transform: translateX(calc(100% + 24px)); opacity: 0; pointer-events: none; display: flex; flex-direction: column; padding-bottom: 0; }
+body.alerts-open .drawer { transform: none; opacity: 1; pointer-events: auto; }
+.drawer h3 { display: flex; align-items: center; gap: 8px; }
+.drawer .x { margin-left: auto; border: 0; background: none; font-size: 20px; line-height: 1; color: var(--muted); cursor: pointer; }
+.sevs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.sevs button { border: 1px solid var(--line); background: var(--chip); border-radius: 10px; padding: 6px 4px; cursor: pointer; text-align: center; transition: border-color .2s, opacity .2s; }
+.sevs button b { display: block; font-size: 18px; font-family: 'JetBrains Mono', monospace; color: var(--sc); }
+.sevs button span { font-size: 10.5px; color: var(--muted); }
+.sevs button.off { opacity: .4; }
+.filters { display: block; margin-top: 8px; color: var(--muted); font-size: 11px; }
+.filters select { margin-top: 4px; color: var(--text); }
+.alist { list-style: none; margin: 0; padding: 4px 0 12px; overflow-y: auto; flex: 1; }
+.alist li { border: 1px solid var(--line); border-left: 3px solid var(--sc); border-radius: 10px; padding: 9px 10px; margin-top: 7px; background: var(--glass-hi); cursor: pointer; transition: border-color .2s; animation: rise .35s var(--ease) both; }
+.alist li:hover { border-color: var(--accent); border-left-color: var(--sc); }
+.alist .top { display: flex; gap: 8px; align-items: center; }
+.alist .sev { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 5px; background: var(--sc); color: #fff; letter-spacing: .04em; }
+.alist .tag { font-size: 10px; padding: 1px 6px; border-radius: 5px; border: 1px solid var(--warm); color: var(--warm); }
+.alist .meta { color: var(--muted); font-size: 11.5px; margin-top: 3px; }
+.alist details { margin-top: 6px; font-size: 11.5px; }
+.alist summary { cursor: pointer; color: var(--accent); }
+.alist details ul { margin: 4px 0 0 16px; padding: 0; }
+.alist .empty { border: 0; background: none; cursor: default; color: var(--muted); animation: none; }

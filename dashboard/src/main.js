@@ -2,6 +2,7 @@ import { NC, NLAT, NLON, CELLS, LAYERS, LAT0, LON0, BBOX, TEX_W, TEX_H, CLOUD_W,
 import { Globe } from './globe.js';
 import { Map2D } from './map2d.js';
 import { impacts, landMeanSeries, propagation } from './impact.js';
+import { generateAlerts, diffAlerts, ADVICE, SEVERITIES } from './alerts.js';
 
 // ?api=http://host:port overrides; 127.0.0.1 avoids Windows' slow IPv6-first "localhost" lookup
 const API = new URLSearchParams(location.search).get('api') || `http://${!location.hostname || location.hostname === 'localhost' ? '127.0.0.1' : location.hostname}:8000`;
@@ -267,7 +268,8 @@ async function loadWindow(i) {
   if (S.mode !== 'truth') setMode('prime');
   repaint(); renderImpacts(); renderTelemetry(); updateTimelineLabels();
   $('prop').innerHTML = ''; $('propNote').textContent = 'Run a multiverse shock to see how far it spreads each day.';
-  S.risk.prime = await riskFor(S.prime); renderRisk(); renderTelemetry(); if (LAYERS[S.layer].ml) repaint();
+  computeAlerts();
+  S.risk.prime = await riskFor(S.prime); renderRisk(); renderTelemetry(); computeAlerts(); if (LAYERS[S.layer].ml) repaint();
 }
 
 async function runMultiverse() {
@@ -280,7 +282,8 @@ async function runMultiverse() {
   if (S.view === 'globe' && !S.tour) globe.flyTo(sh.lat, sh.lon, 2.3, 1.6);
   setMode('delta'); S.day = 1; $('dayRange').value = 1;
   repaint(); renderImpacts(); renderPropagation(); renderTelemetry(); updateTimelineLabels(); play(true);
-  S.risk.multi = await riskFor(S.multi); renderRisk();
+  computeAlerts();
+  S.risk.multi = await riskFor(S.multi); renderRisk(); computeAlerts();
 }
 
 async function runEnsemble() {
@@ -320,7 +323,7 @@ function setMode(m) {
   S.mode = m; for (const b of $('modeSeg').children) b.classList.toggle('on', b.dataset.mode === m);
   const [lo, hi, unit] = paintLegend($('legend'), S.layer, m === 'delta' ? 'delta' : m === 'spread' ? 'spread' : 'abs');
   $('legLo').textContent = lo; $('legHi').textContent = hi; $('legUnit').textContent = unit;
-  repaint(); updateTimelineLabels(); renderRisk();
+  repaint(); updateTimelineLabels(); renderRisk(); renderAlerts();
 }
 function setLayer(k, quiet) {
   if (LAYERS[k].ml && !S.hasRisk) return toast('The ML risk model is not loaded on the server (run train_risk.py).');
@@ -369,6 +372,47 @@ function warnShock(force) {
 function play(on) { S.playing = on ?? !S.playing; $('playIcon').setAttribute('d', S.playing ? 'M6 4h4v16H6zM14 4h4v16h-4z' : 'M7 4v16l13-8z'); if (S.playing && S.day >= STEPS - 0.01) S.day = 0; }
 function stepDay(d) { play(false); S.day = Math.max(0, Math.min(STEPS, Math.round(S.day) + d)); $('dayRange').value = S.day; repaint(); updateTimelineLabels(); renderChart(); }
 const frameOpts = () => ({ ...S.opts });
+
+// ---------------------------------------------------------------- alerts & warnings (policy co-pilot)
+const SEV_COL = { Critical: '#e5484d', High: '#f08c2e', Moderate: '#e8b923', Low: '#4c8bf5' };
+const sevOn = new Set(SEVERITIES);
+function computeAlerts() {
+  if (!S.prime || !S.clim || !S.land) return;
+  S.alertsPrime = generateAlerts(S.prime, S.clim, S.land, S.risk.prime);
+  S.alertsMulti = S.multi ? diffAlerts(S.alertsPrime, generateAlerts(S.multi, S.clim, S.land, S.risk.multi)) : null;
+  renderAlerts();
+}
+function renderAlerts() {
+  if (!S.alertsPrime) return;
+  const multi = S.alertsMulti && (S.mode === 'multi' || S.mode === 'delta'), all = multi ? S.alertsMulti : S.alertsPrime;
+  const urgent = all.filter(a => a.severity === 'Critical' || a.severity === 'High').length, b = $('alertsBadge');
+  b.hidden = !all.length; b.textContent = all.length; b.classList.toggle('calm', !urgent);
+  $('alertsSrc').textContent = multi ? `· ${S.shock.name} universe` : '· Timeline Prime';
+  $('fStatusWrap').hidden = !multi; if (!multi) $('fStatus').value = '';
+  const states = [...new Set(all.map(a => a.region))].sort(), cur = $('fState').value;
+  $('fState').innerHTML = `<option value="">All (${states.length})</option>` + states.map(r => `<option${r === cur ? ' selected' : ''}>${r}</option>`).join('');
+  const f = a => (!$('fState').value || a.region === $('fState').value) && (!$('fType').value || a.type === $('fType').value) && (!$('fStatus').value || a.status === $('fStatus').value);
+  $('sevChips').innerHTML = SEVERITIES.map(v => `<button data-s="${v}" class="${sevOn.has(v) ? '' : 'off'}" style="--sc:${SEV_COL[v]}" aria-pressed="${sevOn.has(v)}"><b>${all.filter(a => a.severity === v && f(a)).length}</b><span>${v}</span></button>`).join('');
+  $('sevChips').onclick = e => { const v = e.target.closest('button')?.dataset.s; if (!v) return; sevOn.has(v) ? sevOn.delete(v) : sevOn.add(v); renderAlerts(); };
+  const shown = all.filter(a => sevOn.has(a.severity) && f(a)).slice(0, 80);
+  $('alertList').innerHTML = shown.length ? shown.map((a, n) => {
+    const what = a.type === 'rain' ? (a.severity === 'Low' ? 'Heavy-rain watch' : 'Heavy rain') : (a.severity === 'Low' ? 'Heat watch' : 'Heat stress');
+    const val = a.type === 'rain' ? `peak ${Math.round(a.value)} mm/day` : `daily mean up to ${a.value.toFixed(1)} °C`;
+    const adv = ADVICE[a.type];
+    return `<li data-n="${n}" style="--sc:${SEV_COL[a.severity]}"><div class="top"><span class="sev">${a.severity.toUpperCase()}</span><b>${what}</b>${a.status === 'new' ? '<span class="tag">NEW in multiverse</span>' : a.status === 'worse' ? '<span class="tag">MORE SEVERE</span>' : ''}</div>
+      <div class="meta">Day +${a.day} · ${a.region} · ${val} · ${a.cells} cell${a.cells > 1 ? 's' : ''} (~${(a.cells * 12).toLocaleString('en-IN')}k km²)</div>
+      <details onclick="event.stopPropagation()"><summary>Dos &amp; don'ts</summary><ul>${adv.do.map(t => `<li>✔ ${t}</li>`).join('')}${adv.dont.map(t => `<li>✘ ${t}</li>`).join('')}</ul></details></li>`;
+  }).join('') : `<li class="empty">No alerts match. ${all.length ? 'Try other filters.' : 'This universe has no heavy-rain or heat alerts.'}</li>`;
+  $('alertList').onclick = e => {
+    const a = shown[e.target.closest('li[data-n]')?.dataset.n]; if (!a) return;
+    setLayer(a.type === 'rain' ? 'tp' : 't2m'); stepDay(a.day - Math.round(S.day));
+    S.view === 'globe' ? globe.flyTo(a.lat, a.lon, 2.0, 1.4) : map.flyTo(a.lat, a.lon, 7);
+  };
+}
+function toggleAlerts(on) {
+  const open = on ?? !document.body.classList.contains('alerts-open');
+  document.body.classList.toggle('alerts-open', open); $('alertsBtn').classList.toggle('on', open); $('alertsBtn').setAttribute('aria-expanded', open);
+}
 
 // guided tour: every event, fly in, show the caption, play its 10 days, move on (any click on Tour stops it)
 async function tour() {
@@ -425,6 +469,8 @@ function initUI() {
   $('optRotate').onchange = e => { globe.autoRotate = e.target.checked || S.layout === 'cinema'; };
   $('themeBtn').onclick = e => setTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light', e);
   $('tourBtn').onclick = tour; $('snapBtn').onclick = snapshot;
+  $('alertsBtn').onclick = () => toggleAlerts(); $('alertsClose').onclick = () => toggleAlerts(false);
+  for (const id of ['fState', 'fType', 'fStatus']) $(id).onchange = renderAlerts;
   $('playBtn').onclick = () => play();
   $('dayRange').oninput = e => { S.day = +e.target.value; play(false); repaint(); updateTimelineLabels(); renderChart(); };
   $('ticks').innerHTML = Array.from({ length: STEPS + 1 }, (_, d) => `<span>${d === 0 ? 'init' : '+' + d}</span>`).join('');
@@ -437,7 +483,7 @@ function initUI() {
     else if (k === 'g') setView('globe'); else if (k === 'm') setView('map');
     else if (k === 'd') setTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light');
     else if (k === 'f') setLayout(S.layout === 'focus' ? 'full' : 'focus'); else if (k === 'c') setLayout(S.layout === 'cinema' ? 'full' : 'cinema');
-    else if (k === 't') tour(); else if (k === 's') snapshot(); else if (k === 'v') vb.click();
+    else if (k === 'a') toggleAlerts(); else if (k === 't') tour(); else if (k === 's') snapshot(); else if (k === 'v') vb.click();
     else if (k === '?') $('help').hidden = !$('help').hidden; else if (k === 'Escape') { $('help').hidden = true; menu.hidden = true; }
     else if ('1234'.includes(k)) setMode(['prime', 'multi', 'delta', 'truth'][+k - 1]);
   });

@@ -55,6 +55,9 @@
           </div>
         </div>
       </div>
+      <button class="icon" id="alertsBtn" title="Alerts & warnings (a)" aria-controls="alerts" aria-expanded="false">
+        <svg viewBox="0 0 24 24"><path d="M12 2 1 21h22L12 2zm1 15h-2v-2h2v2zm0-4h-2V9h2v4z" /></svg><span>Alerts</span><b class="badge" id="alertsBadge" hidden>0</b>
+      </button>
       <button class="icon" id="tourBtn" title="Guided tour of all events (t)"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-2 14.5v-9l7 4.5-7 4.5z" /></svg><span>Tour</span></button>
       <button class="icon round" id="snapBtn" title="Save snapshot (s)"><svg viewBox="0 0 24 24"><path d="M9 3 7.2 5H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.2L15 3H9zm3 14a5 5 0 1 1 0-10 5 5 0 0 1 0 10z" /></svg></button>
       <button class="icon round theme" id="themeBtn" title="Light / dark (d)" aria-label="Toggle light or dark theme">
@@ -130,6 +133,20 @@
       <h3>Engine telemetry</h3>
       <dl class="tele" id="tele"></dl>
     </section>
+  </aside>
+
+  <aside class="panel drawer glass" id="alerts" aria-label="Alerts and warnings">
+    <section>
+      <h3>Alerts &amp; warnings <span class="muted small" id="alertsSrc"></span><button class="x" id="alertsClose" aria-label="Close alerts">×</button></h3>
+      <div class="sevs" id="sevChips"></div>
+      <div class="row2 filters">
+        <label>State <select id="fState"></select></label>
+        <label>Type <select id="fType"><option value="">All</option><option value="rain">Heavy rain</option><option value="heat">Heat</option></select></label>
+      </div>
+      <label class="filters" id="fStatusWrap" hidden>Status <select id="fStatus"><option value="">All</option><option value="new">New in multiverse</option><option value="worse">More severe</option><option value="same">Unchanged</option></select></label>
+      <p class="muted small">Heavy rain: IMD ≥ 64.5 mm/day (≥ 115.6 High, ≥ 204.5 Critical). Heat: daily mean ≥ 35 °C or ≥ 4.5 K above normal. Low = INDRA-Risk watch. Click an alert to jump there.</p>
+    </section>
+    <ol class="alist" id="alertList"></ol>
   </aside>
 
   <footer class="timeline glass">
