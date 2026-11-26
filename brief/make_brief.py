@@ -102,7 +102,6 @@ s += B([
     "<b>Universes:</b> Prime, Multiverse, Δ, Observed (verification) and Ensemble σ. <b>Shocks:</b> presets or any variable/size/place (Shift+click). "
     "Plus a causality chart, live telemetry, light/dark theme, layouts and a guided tour.",
 ])
-cards = Image(str(HERE / "img" / "impact_cards.jpg"), width=46 * mm, height=46 * mm * 1144 / 632)
 impact = [P("7 · Impact use case: what a shock means for people", h2),
           P("Each universe becomes decisions, computed live from the rollout and the model’s climatology. "
             "<b>Real results</b>, Monsoon-onset window (10-day totals, Prime → Multiverse):"),
@@ -110,15 +109,14 @@ impact = [P("7 · Impact use case: what a shock means for people", h2),
                  ["Heat dome +4 K, NW", "<b>2.6 → 9.5 %</b>", "19.1 → 17.6 %", "−21 → −20 %", "21 → 21 mm"],
                  ["Warm Bay of Bengal", "2.6 → 2.5 %", "19.1 → 18.0 %", "<b>−21 → −18 %</b>", "<b>21 → 26 mm</b>"],
                  ["Monsoon stall −40% wind", "2.6 → 2.7 %", "19.1 → 18.4 %", "−21 → −20 %", "21 → 21 mm"]],
-                [40 * mm, 23 * mm, 24 * mm, 22 * mm, 23 * mm]),
+                [50 * mm, 34 * mm, 34 * mm, 32 * mm, 32 * mm]),
           Spacer(1, 2),
           P("Indicators: heatwave = % land with daily-mean t2m ≥ 35 °C or ≥ 4.5 K above normal; flood-risk area = land with IMD heavy rain ≥ 64.5 mm/day; "
             "crop stress = rain deficit vs normal × heat; plus wind power at 100 m and ensemble confidence. "
             "Users: health departments, NDMA/SDMA, kharif planning, grid operators.", small),
           P("<b>INDRA-Risk</b> (second ML model, a small CNN trained on INDRA’s own forecasts vs reality) turns each day into "
             "probabilities of heavy rain and heat stress. Held-out 2021 ROC-AUC: <b>0.90 heavy rain, 0.99 heat</b>.")]
-s.append(Table([[impact, cards]], colWidths=[136 * mm, 48 * mm],
-               style=[("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (0, 0), 4)]))
+s += impact
 s += [P("8 · Integrity notes", h2)] + [P(t, small) for t in [
     "• The 366-day climatology in weights/indra.pt (and the rain climatology used for calibration) is an average of the training years 2005–2020, "
     "smoothed over 15 days, used as a model input. It is not stored weather.",
