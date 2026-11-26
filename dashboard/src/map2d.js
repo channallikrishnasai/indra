@@ -85,6 +85,8 @@ export class Map2D {
   respawn(k, rnd) { this.P[k * 3] = BBOX.s + Math.random() * 32; this.P[k * 3 + 1] = BBOX.w + Math.random() * 36; this.P[k * 3 + 2] = rnd ? Math.random() * 80 : 0; }
   setShock(s) { this.shock = s; this.dirty = true; }
   setOutline(f) { this.outline = f; this.dirty = true; }
+  /** R = { cellDay: Uint8Array (first day reached, 99 = never), lat, lon, r0 }; reachT = day shown (0..10) */
+  setReach(R) { this.reach = R; this.reachT = 10; this.dirty = true; }
   flyTo(lat, lon, k = 4.2) {
     const tx = this.w / 2 - (lon + 180) / 360 * this.W0 * k, ty = this.h / 2 - ((this.h - this.W0 / 2) / 2 + (90 - lat) / 180 * this.W0 / 2) * k;
     const from = this.t, to = zoomIdentity.translate(tx, ty).scale(k), t0 = performance.now(), dur = 1800;
@@ -130,6 +132,21 @@ export class Map2D {
     }
     // UI overlay: domain box, labels, cities, shock
     const u = this.ctx.mapUi; u.clearRect(0, 0, this.w, this.h);
+    if (this.reach) {
+      const R = this.reach, day = this.reachT, u2 = u;
+      for (let i = 0; i < 32; i++) for (let j = 0; j < 36; j++) {
+        const d = R.cellDay[i * 36 + j]; if (d > day) continue;
+        const a = Math.min(1, day - d + 0.6) * 0.5, x0 = this.x(LON0 + j - 0.5), x1 = this.x(LON0 + j + 0.5), y0 = this.y(LAT0 + i + 0.5), y1 = this.y(LAT0 + i - 0.5);
+        u2.fillStyle = `rgba(255,${Math.round(200 - d * 12)},${Math.round(70 + d * 10)},${a.toFixed(3)})`; u2.fillRect(x0, y0, x1 - x0, y1 - y0);
+      }
+      // speed-limit rings: the furthest the shock could have reached (about 7 degrees a day beyond its box)
+      u.setLineDash([6, 5]); u.strokeStyle = 'rgba(255,255,255,0.6)'; u.lineWidth = 1.2;
+      for (let d = 1; d <= Math.floor(day); d++) {
+        const rx = Math.abs(this.x(R.lon + R.r0 + 7 * d) - this.x(R.lon)), ry = Math.abs(this.y(R.lat + R.r0 + 7 * d) - this.y(R.lat));
+        u.beginPath(); u.ellipse(this.x(R.lon), this.y(R.lat), rx, ry, 0, 0, 2 * Math.PI); u.stroke();
+      }
+      u.setLineDash([]);
+    }
     if (this.outline) { u.beginPath(); geoPath(this.projection(), u)(this.outline); u.strokeStyle = '#ffd166'; u.lineWidth = 2.2; u.setLineDash([]); u.stroke(); }
     u.setLineDash([6, 5]); u.strokeStyle = 'rgba(70,211,255,0.6)'; u.lineWidth = 1; u.strokeRect(x0, y0, w, h); u.setLineDash([]);
     u.font = '600 11px Inter'; u.textAlign = 'center';

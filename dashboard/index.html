@@ -139,6 +139,11 @@
       <button class="ghost slim tipbtn" id="tipBtn" title="Smallest warming of the Bay of Bengal that brings heavy rain (64.5 mm/day) to this state">Find tipping point</button>
       <p class="tip" id="tipOut" hidden></p>
     </section>
+    <section id="reachSec" hidden>
+      <h3>Causal reach <span class="muted small">the 7-cell-a-day speed limit</span></h3>
+      <div class="cityrow"><input type="range" id="reachDay" min="0" max="10" step="0.05" value="10" aria-label="Day" /><button class="ghost slim" id="reachPlay">▶ Play</button></div>
+      <div class="tip" id="reachOut"></div>
+    </section>
     <section>
       <h3>City forecast <span class="muted small">from the live grid</span></h3>
       <div class="cityrow"><select id="citySel" aria-label="City"></select><button class="ghost slim" id="cityGo" title="Fly to street level in 3D">Street 3D ↗</button></div>

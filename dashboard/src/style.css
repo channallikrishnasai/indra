@@ -363,3 +363,5 @@ body.layout-focus #map3d .maplibregl-ctrl-top-right, body.layout-cinema #map3d .
 .pin span { position: absolute; left: 12px; top: -10px; white-space: nowrap; font-size: 11px; padding: 2px 7px; border-radius: 6px; background: rgba(7,14,26,.8); color: #fff; }
 @keyframes pinpulse { 0% { box-shadow: 0 0 0 0 rgba(255,122,69,.6); } 100% { box-shadow: 0 0 0 16px rgba(255,122,69,0); } }
 #cloudBtn.on { background: color-mix(in srgb, var(--accent) 25%, transparent); }
+#reachSec input[type=range] { flex: 1; }
+#reachSec .small { font-size: 11px; color: var(--muted); }

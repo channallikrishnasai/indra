@@ -294,6 +294,43 @@ async function loadWindow(i) {
 }
 
 // several shocks: their physical changes are added together (a linear approximation; one /simulate call)
+// ---- causal reach: where the shock's response has got to by each day (the model moves information 7 cells a day at most)
+function computeReach() {
+  if (!S.multi || !S.prime || !S.shock) return null;
+  const sd = [13.46, 7.55, 2.9, 2.43, 619, 20.49], perDay = [];
+  let gmax = 0;
+  for (let d = 1; d <= STEPS; d++) {
+    const e = new Float32Array(CELLS);
+    for (let k = 0; k < CELLS; k++) { let s = 0; for (let c = 0; c < 6; c++) { const z = (S.multi[d][c * CELLS + k] - S.prime[d][c * CELLS + k]) / sd[c]; s += z * z; } e[k] = Math.sqrt(s); gmax = Math.max(gmax, e[k]); }
+    perDay.push(e);
+  }
+  const thr = Math.max(0.05, 0.05 * gmax), cellDay = new Uint8Array(CELLS).fill(99);
+  perDay.forEach((e, d) => { for (let k = 0; k < CELLS; k++) if (cellDay[k] === 99 && e[k] > thr) cellDay[k] = d + 1; });
+  const cellLat = k => LAT0 + Math.floor(k / NLON), cellLon = k => LON0 + k % NLON;
+  const summary = {};
+  for (let day = 1; day <= STEPS; day++) {
+    const states = new Set(), cities = [];
+    for (let k = 0; k < CELLS; k++) if (cellDay[k] <= day && k % 2 === 0) { const s = stateAt(cellLat(k), cellLon(k)); if (s) states.add(s); }
+    for (const [name, la, lo] of CITIES) { const k = Math.round(la - LAT0) * NLON + Math.round(lo - LON0); if (cellDay[k] <= day) cities.push(name); }
+    summary[day] = { states: [...states].sort(), cities, cells: [...cellDay].filter(v => v <= day).length };
+  }
+  return { cellDay, lat: S.shock.lat, lon: S.shock.lon, r0: S.shock.radius || 0, summary, name: S.shock.name };
+}
+function renderReach(R) {
+  if (!R) { $('reachSec').hidden = true; return; }
+  $('reachSec').hidden = false; map.setReach(R); map.reachT = +$('reachDay').value;
+  const d = Math.max(1, Math.round(+$('reachDay').value)), s = R.summary[Math.min(10, d)];
+  $('reachOut').innerHTML = `<b>By day ${d}:</b> the response reaches <b>${s.cells}</b> grid cells` +
+    `<br><b>States:</b> ${s.states.join(', ') || 'none yet'}<br><b>Cities:</b> ${s.cities.join(', ') || 'none yet'}` +
+    `<br><span class="small">Dashed rings: the furthest it could have gone at 7 cells a day from the shock box.</span>`;
+}
+let reachPlayT = null;
+function playReach() {
+  if (reachPlayT) { clearInterval(reachPlayT); reachPlayT = null; $('reachPlay').textContent = '▶ Play'; return; }
+  let t = 0; $('reachPlay').textContent = '■ Stop';
+  reachPlayT = setInterval(() => { t += 0.1; $('reachDay').value = t; renderReach(S.reach); if (t >= 10) { clearInterval(reachPlayT); reachPlayT = null; $('reachPlay').textContent = '▶ Play'; } }, 90);
+}
+
 // ---- live briefing: what happened, how risky, and pins on the three strongest changes
 const RISK_COL = { Low: '#4c8bf5', Moderate: '#e8b923', High: '#f08c2e', Critical: '#e5484d' };
 let pinEls = [];
@@ -355,7 +392,7 @@ async function runMultiverse() {
   if (!touched) return warnShock(true);
   setBusy(true, `branching universe: ${sh.name}…`);
   briefing(sh);
-  try { S.multi = await simulate(S.init, delta); S.shock = sh; S.brief = computeBrief(); renderBrief(S.brief); } catch (e) { toast(e.message); setBusy(false); return; }
+  try { S.multi = await simulate(S.init, delta); S.shock = sh; S.brief = computeBrief(); renderBrief(S.brief); S.reach = computeReach(); renderReach(S.reach); } catch (e) { toast(e.message); setBusy(false); return; }
   setBusy(false, `${S.modelName} · ready`);
   globe.setShock(sh); map.setShock(sh);
   if (S.view === 'globe' && !S.tour) globe.flyTo(sh.lat, sh.lon, 2.3, 1.6);
@@ -788,6 +825,7 @@ function initUI() {
     fieldDirty = true;
   };
   $('optRotate').onchange = e => { globe.autoRotate = e.target.checked || S.layout === 'cinema'; };
+  $('reachDay').oninput = () => { if (reachPlayT) playReach(); renderReach(S.reach); }; $('reachPlay').onclick = playReach;
   $('cloudBtn').onclick = () => { const c = $('optClouds'); c.checked = !c.checked; c.dispatchEvent(new Event('change')); $('cloudBtn').setAttribute('aria-pressed', c.checked); $('cloudBtn').classList.toggle('on', c.checked); };
   $('themeBtn').onclick = e => setTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light', e);
   $('tourBtn').onclick = tour; $('snapBtn').onclick = snapshot; $('reportBtn').onclick = downloadReport;
