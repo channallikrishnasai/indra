@@ -189,3 +189,53 @@ export function makeReport(r) {
   doc.save(name);
   return name;
 }
+
+/** Scenario comparison PDF. r = { win, day, layer, unit, scenarios: [{name, sub, image, alerts, high, heatDays, flood, crop, peakRain, rainDep, base}],
+ *  baseRef: {alerts, heatDays, flood, crop}, commit, lastRun, model } */
+export function makeCompareReport(r) {
+  const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true });
+  const T = (t, x, y, o = {}) => {
+    const { size = 9.5, color = C.ink, bold = false, align = 'left', maxW } = o;
+    doc.setFont('helvetica', bold ? 'bold' : 'normal'); doc.setFontSize(size); doc.setTextColor(...color);
+    doc.text(maxW ? doc.splitTextToSize(ascii(t), maxW) : ascii(t), x, y, { align, lineHeightFactor: 1.35 });
+  };
+  const band = (title, sub) => {
+    doc.setFillColor(...C.night); doc.rect(0, 0, W, 38, 'F'); doc.setFillColor(...C.acc2); doc.rect(0, 38, W, 1, 'F');
+    T('INDRA', M, 15, { size: 18, bold: true, color: [232, 239, 251] }); T(title, M + 30, 15, { size: 13, bold: true, color: [232, 239, 251] });
+    T(sub, M, 23, { size: 8.6, color: [150, 172, 205], maxW: CW });
+    T(`Team Omnix · DevForge Track 2 · ${r.model || 'INDRA-v1'} · last run ${r.lastRun ? r.lastRun.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '-'} · NOT AN OFFICIAL IMD FORECAST`, M, 31, { size: 7.8, bold: true, color: [255, 190, 110] });
+  };
+  const sub = `Start date ${r.win.date} (${r.win.title}) · day +${r.day} · map layer: ${r.layer} (${r.unit}) · same initial state, different shocks`;
+  const iw = (CW - 6) / 2, ih = iw * 320 / 360;
+  for (let p = 0; p < r.scenarios.length; p += 4) {
+    if (p) doc.addPage();
+    band('Scenario comparison', sub);
+    r.scenarios.slice(p, p + 4).forEach((s, i) => {
+      const x = M + (i % 2) * (iw + 6), y = 48 + Math.floor(i / 2) * (ih + 20);
+      T(s.name, x, y, { size: 10.5, bold: true }); T(s.sub, x, y + 4.6, { size: 7.6, color: C.mut, maxW: iw });
+      doc.addImage(s.image, 'JPEG', x, y + 7, iw, ih, undefined, 'FAST');
+      T(`Alerts ${s.alerts} (${s.high} High+) · heatwave days ${s.heatDays} · flood ${s.flood.toFixed(0)}k km2 · crop stress ${s.crop.toFixed(1)}%`, x, y + ih + 11, { size: 7.2, color: C.mut, maxW: iw });
+    });
+  }
+  doc.addPage(); band('Scenario comparison · summary', sub);
+  const cols = ['Scenario', 'Alerts (High+)', 'Heatwave days', 'Flood area k km2', 'Crop stress %', 'Peak rain mm/day', 'Rain vs normal %'];
+  const wid = [52, 24, 22, 24, 22, 17, 17]; let y = 52;
+  doc.setFillColor(...C.night); doc.rect(M, y - 4.6, CW, 7, 'F');
+  let x = M; cols.forEach((c, i) => { T(c, i ? x + wid[i] - 1.5 : x + 2, y, { size: 7, bold: true, color: C.paper, align: i ? 'right' : 'left' }); x += wid[i]; });
+  y += 7.5;
+  const b = r.baseRef, dd = (v, bv, dig) => (bv == null ? '' : ` (${v - bv > 0 ? '+' : ''}${(v - bv).toFixed(dig)})`);
+  r.scenarios.forEach((s, ri) => {
+    if (ri % 2) { doc.setFillColor(...C.zebra); doc.rect(M, y - 4.4, CW, 6.6, 'F'); }
+    const ref = s.base ? {} : b;
+    const cells = [s.name, `${s.alerts} (${s.high})${dd(s.alerts, ref.alerts, 0)}`, `${s.heatDays}${dd(s.heatDays, ref.heatDays, 0)}`, `${s.flood.toFixed(0)}${dd(s.flood, ref.flood, 0)}`,
+      `${s.crop.toFixed(1)}${dd(s.crop, ref.crop, 1)}`, s.peakRain.toFixed(0), `${s.rainDep > 0 ? '+' : ''}${s.rainDep.toFixed(0)}`];
+    x = M; cells.forEach((c, i) => { T(c, i ? x + wid[i] - 1.5 : x + 2, y, { size: 7.6, bold: !i, align: i ? 'right' : 'left' }); x += wid[i]; });
+    y += 6.6;
+  });
+  y += 6;
+  T('Numbers in brackets are the change against "No shock". Alerts: IMD daily rain thresholds 64.5 / 115.6 / 204.5 mm/day and the heat rule (daily mean >= 35 C, or >= 4.5 K above normal while >= 30 C). Heatwave days: days with more than 5% of land under heat stress. Flood area: land where any day reaches 64.5 mm/day. Crop stress: rain deficit vs normal weighted by heat. Each scenario is a live INDRA run from the same three input days; shocks are added to the last input day. Research prototype, not an official forecast.', M, y, { size: 8, color: C.mut, maxW: CW });
+  const pages = doc.getNumberOfPages();
+  for (let p = 1; p <= pages; p++) { doc.setPage(p); T(`INDRA · Team Omnix · commit ${r.commit || 'dev'} · Not an official IMD forecast`, M, H - 8.5, { size: 7.2, color: C.mut }); T(`page ${p} of ${pages}`, W - M, H - 8.5, { size: 7.2, color: C.mut, align: 'right' }); }
+  const name = `INDRA-comparison-${r.win.date}-day${r.day}.pdf`;
+  doc.save(name); return name;
+}

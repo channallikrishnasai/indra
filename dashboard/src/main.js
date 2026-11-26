@@ -842,6 +842,10 @@ function initUI() {
   $('shockList').onclick = e => { const i = e.target.dataset.i; if (i !== undefined) { S.shockList.splice(+i, 1); renderShockList(); } };
   $('runBtn').onclick = runMultiverse; $('ensBtn').onclick = runEnsemble; $('resetBtn').onclick = resetBaseline;
   $('reloadBtn').onclick = () => location.reload();
+  $('cmpBtn').onclick = async () => {
+    const { openCompare } = await import('./compare.js');
+    openCompare({ S, simulate, buildPerturbation, DAY, toast, makePdf: async r => (await import('./report.js')).makeCompareReport({ ...r, commit: COMMIT, lastRun: S.lastRun, model: S.modelName }) });
+  };
   $('brief').onclick = e => { if (e.target.closest('.bx')) { $('brief').hidden = true; $('pins').hidden = true; } };
   $('modeSeg').onclick = e => e.target.dataset.mode && setMode(e.target.dataset.mode);
   $('viewSeg').onclick = e => e.target.dataset.view && setView(e.target.dataset.view);
