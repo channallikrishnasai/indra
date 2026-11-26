@@ -294,7 +294,7 @@ async function loadWindow(i) {
     const zero = await simulate(S.init, new Float32Array(DAY));            // live determinism check: zero shock = no change
     S.nullDiff = Math.max(...zero.slice(1).map((d, k) => d.reduce((m, v, j) => Math.max(m, Math.abs(v - S.prime[k + 1][j]) / STD[Math.floor(j / CELLS)]), 0)));
     setBusy(false, `${S.modelName} · ready`); runInfo();
-  } catch (e) { setBusy(false); status('server unreachable', 'err'); toast(`Cannot reach ${API}: ${e.message}. Start it with “python serve.py --port 8000”.`); return; }
+  } catch (e) { setBusy(false); status('server unreachable', 'err'); toast(`Cannot reach ${API}: ${e.message}. Start it with “python serve.py --port 8000”.`); offline(); return; }
   if (S.mode !== 'truth') setMode('prime');
   repaint(); renderImpacts(); renderTelemetry(); updateTimelineLabels();
   $('prop').innerHTML = ''; $('propNote').textContent = 'Run a multiverse shock to see how far it spreads each day.';
@@ -473,7 +473,8 @@ function toggleLayer(k) {
   setMode(S.mode); renderChart();
 }
 function syncChips() {
-  for (const b of $('layerChips').children) b.classList.toggle('on', b.dataset.l === S.layer || (!LAYERS[b.dataset.l]?.ml && S.layers.has(b.dataset.l)));
+  const chance = S.mode === 'chance';   // the chance map replaces the layer, so no weather chip stays lit
+  for (const b of $('layerChips').children) b.classList.toggle('on', !chance && (b.dataset.l === S.layer || (!LAYERS[b.dataset.l]?.ml && S.layers.has(b.dataset.l))));
   const names = [...S.layers].map(k => LAYERS[k].name);
   $('layerNote').textContent = LAYERS[S.layer].ml ? `INDRA-Risk: probability that ${S.layer === 'flood' ? 'daily rain exceeds 64.5 mm (IMD heavy)' : 'daily-mean heat stress occurs'}, learned from INDRA's own forecasts vs what happened.`
     : names.length > 1 ? `Overlay: ${names.join(' + ')}. The legend shows ${LAYERS[S.layer].name}.` : '';
@@ -843,6 +844,7 @@ function initUI() {
   $('runBtn').onclick = runMultiverse; $('ensBtn').onclick = runEnsemble; $('resetBtn').onclick = resetBaseline;
   $('reloadBtn').onclick = () => location.reload();
   $('auditBtn').onclick = () => showAudit('shock');
+  $('valBtn').onclick = async () => (await import('./validation.js')).openValidation();
   $('whatifBtn').onclick = () => showAudit('warm1');
   $('cmpBtn').onclick = async () => {
     const { openCompare } = await import('./compare.js');
