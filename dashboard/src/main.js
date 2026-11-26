@@ -14,7 +14,7 @@ const $ = id => document.getElementById(id);
 const store = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* private mode */ } } };
 
 const S = {
-  view: 'globe', mode: 'prime', layer: 't2m', day: 0, playing: false, speed: 1,
+  view: 'globe', mode: 'prime', layer: 't2m', layers: new Set(['t2m']), day: 0, playing: false, speed: 1,
   opts: { wind: true, clouds: true, rain: true, borders: true, cities: true },
   windows: [], win: null, init: null, truth: null, land: null, clim: null,
   prime: null, multi: null, spread: null, shock: null, preset: 'bob', lastMs: 0, nullDiff: null,
@@ -137,6 +137,7 @@ function gridFor(which, t) {
 }
 
 let fieldDirty = true, lastPaint = -1, cloudT = 0;
+const layerTmp = Object.assign(document.createElement('canvas'), { width: TEX_W, height: TEX_H });   // scratch layer for overlays
 function repaint() {
   const t = S.day, L = LAYERS[S.layer]; let grid, weatherDay;
   if (S.mode === 'delta' && S.multi) {
@@ -149,7 +150,10 @@ function repaint() {
   }
   if (!weatherDay) return;
   const ctx = fieldCanvas.getContext('2d'); ctx.clearRect(0, 0, TEX_W, TEX_H);
-  if (grid) paintField(ctx, grid, { layer: S.layer, mode: S.mode === 'delta' ? 'delta' : S.mode === 'spread' ? 'spread' : 'abs' });
+  const overlay = !L.ml && S.mode !== 'delta' && S.mode !== 'spread' && S.layers.size > 1 && weatherDay;
+  if (overlay) {                                                  // several weather layers at once: composite each one
+    for (const k of S.layers) { layerTmp.getContext('2d').clearRect(0, 0, TEX_W, TEX_H); paintField(layerTmp.getContext('2d'), layerGrid(weatherDay, k), { layer: k, mode: 'abs' }); ctx.drawImage(layerTmp, 0, 0); }
+  } else if (grid) paintField(ctx, grid, { layer: S.layer, mode: S.mode === 'delta' ? 'delta' : S.mode === 'spread' ? 'spread' : 'abs' });
   const cc = cloudCanvas.getContext('2d'); cc.clearRect(0, 0, CLOUD_W, CLOUD_H); if (S.opts.clouds) paintClouds(cc, weatherDay, cloudT);
   for (const [dst, from] of [[globe.fieldCanvas, fieldCanvas], [globe.cloudCanvas, cloudCanvas]]) { const g = dst.getContext('2d'); g.clearRect(0, 0, dst.width, dst.height); g.drawImage(from, 0, 0); }
   globe.field.tex.needsUpdate = true; globe.clouds.tex.needsUpdate = true;
@@ -441,12 +445,27 @@ function setMode(m) {
   $('legLo').textContent = lo; $('legHi').textContent = hi; $('legUnit').textContent = unit;
   repaint(); updateTimelineLabels(); renderRisk(); renderAlerts();
 }
+// weather layers can be overlaid (a set); ML risk layers are always shown alone
 function setLayer(k, quiet) {
   if (LAYERS[k].ml && !S.hasRisk) return toast('The ML risk model is not loaded on the server (run train_risk.py).');
-  S.layer = k; for (const b of $('layerChips').children) b.classList.toggle('on', b.dataset.l === k);
-  $('layerNote').textContent = LAYERS[k].ml ? `INDRA-Risk: probability that ${k === 'flood' ? 'daily rain exceeds 64.5 mm (IMD heavy)' : 'daily-mean heat stress occurs'}, learned from INDRA's own forecasts vs what happened.` : '';
+  S.layer = k; S.layers = new Set(LAYERS[k].ml ? [] : [k]); syncChips();
   if (S.mode === 'spread') { S.spread = null; S.spreadSummary = null; S.mode = 'prime'; }
   if (!quiet) { setMode(S.mode === 'truth' && LAYERS[k].ml ? 'prime' : S.mode); renderChart(); }
+}
+// click on a weather chip: add or remove it from the overlay (at least one stays on)
+function toggleLayer(k) {
+  if (LAYERS[k].ml || !S.layers.size || (S.layers.has(k) && S.layers.size === 1)) return setLayer(k);
+  if (S.layers.has(k)) { S.layers.delete(k); if (S.layer === k) S.layer = [...S.layers].at(-1); }
+  else { S.layers.add(k); S.layer = k; }
+  syncChips();
+  if (S.mode === 'spread') { S.spread = null; S.spreadSummary = null; S.mode = 'prime'; }
+  setMode(S.mode); renderChart();
+}
+function syncChips() {
+  for (const b of $('layerChips').children) b.classList.toggle('on', b.dataset.l === S.layer || (!LAYERS[b.dataset.l]?.ml && S.layers.has(b.dataset.l)));
+  const names = [...S.layers].map(k => LAYERS[k].name);
+  $('layerNote').textContent = LAYERS[S.layer].ml ? `INDRA-Risk: probability that ${S.layer === 'flood' ? 'daily rain exceeds 64.5 mm (IMD heavy)' : 'daily-mean heat stress occurs'}, learned from INDRA's own forecasts vs what happened.`
+    : names.length > 1 ? `Overlay: ${names.join(' + ')}. The legend shows ${LAYERS[S.layer].name}.` : '';
 }
 // "All layers": step through the five weather layers, one every 4 s; any single layer click stops it
 const CYCLE = ['t2m', 'tp', 'wind', 'msl', 'tcwv'];
@@ -800,7 +819,8 @@ function initUI() {
   $('windowSel').innerHTML = S.windows.map((w, i) => `<option value="${i}">${w.title} · ${w.date}</option>`).join('');
   $('windowSel').onchange = e => loadWindow(+e.target.value);
   $('layerChips').innerHTML = `<button data-l="all" class="allchip">All layers ▶</button>` + Object.entries(LAYERS).map(([k, L]) => `<button data-l="${k}" class="${k === S.layer ? 'on' : ''}">${L.name}</button>`).join('');
-  $('layerChips').onclick = e => { const k = e.target.dataset.l; if (!k) return; if (k === 'all') return cycleLayers(); stopCycle(); setLayer(k); };
+  $('layerChips').onclick = e => { const k = e.target.dataset.l; if (!k) return; if (k === 'all') return cycleLayers(); stopCycle(); toggleLayer(k); };
+  syncChips();
   $('presets').innerHTML = Object.entries(PRESETS).map(([k, p]) => `<button data-p="${k}">${p.name}<small>${p.sub}</small></button>`).join('');
   $('presets').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.preset = b.dataset.p; const p = PRESETS[S.preset]; if (!p.custom && !p.box) { $('shockLat').value = p.lat; $('shockLon').value = p.lon; $('shockRad').value = p.radius; $('shockVar').value = p.parts[0][0]; $('shockMag').value = p.parts[0][1]; } syncShockUI(); };
   $('shockVar').onchange = () => { $('shockMag').value = VARS[$('shockVar').value].def; S.preset = 'custom'; syncShockUI(); };
