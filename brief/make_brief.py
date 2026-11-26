@@ -56,7 +56,7 @@ def arch():
 s = []
 # ------------------------------------------------------------------ page 1: model, drift/blur, results, failure modes, architecture
 s += [P("INDRA: a climate digital twin of India", h1),
-      P("<b>Krishna Sai Channalli</b> · Yugaantar DevForge · Track 2 “Multiverse of Monsoon” · github.com/channallikrishnasai/indra", sub), Spacer(1, 3),
+      P("<b>Team Omnix</b> · Yugaantar DevForge · Track 2 “Multiverse of Monsoon” · github.com/channallikrishnasai/indra", sub), Spacer(1, 3),
       P("<b>USP.</b> A 0.53 M-parameter neural stepper that is <b>causal by construction</b>: it sees 7 grid cells per day, so a shock cannot travel faster "
         "than ~7°/day. It stays local on day 1 and spreads afterwards. A learned calibration keeps long rollouts sharp and on climate. "
         "Every forecast drives a live 3D/2D dashboard and a second ML model (INDRA-Risk) for flood and heat risk.")]
@@ -128,5 +128,5 @@ s += [P("8 · Integrity notes", h2)] + [P(t, small) for t in [
 
 out = HERE / "INDRA_brief.pdf"
 SimpleDocTemplate(str(out), pagesize=A4, leftMargin=14 * mm, rightMargin=14 * mm, topMargin=11 * mm, bottomMargin=10 * mm,
-                  title="INDRA: climate digital twin of India", author="Krishna Sai Channalli").build(s)
+                  title="INDRA: climate digital twin of India", author="Team Omnix").build(s)
 print("wrote", out)
