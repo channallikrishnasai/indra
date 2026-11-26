@@ -1020,9 +1020,9 @@ async function boot() {
   S.windows = meta && winData ? meta.windows : []; S.winData = winData;
   initUI(); requestAnimationFrame(loop);
   if (!S.windows.length) {
-    for (const id of ['tourBtn']) { const b = $(id); if (b) { b.disabled = true; b.title = 'Needs the local demo windows (tools/make_windows.py); not in a clean clone'; } }
+    for (const id of ['tourBtn']) { const b = $(id); if (b) { b.disabled = true; b.title = 'Needs local demo data; not in a clean clone'; } }
     $('modeSeg').querySelector('[data-mode=truth]')?.setAttribute('title', 'Needs the local demo windows; not in a clean clone');
-    $('windowDesc').textContent = 'Demo start dates are not in this copy. Use “Your dates” with tools/window_server.py running, or press Forecast after picking a date.';
+    $('windowDesc').textContent = 'Demo start dates are not in this copy. Use “Your dates” with tools/window_server.py running locally.';
   }
   msg('Connecting to the INDRA engine…');
   try {

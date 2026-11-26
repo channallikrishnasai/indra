@@ -15,7 +15,6 @@ repo/
 ├── evaluate.py           offline scoring with the organisers' monsoon_r1.scoring
 ├── weights/indra.pt      trained weights (+ normalisation, static fields, climatology, calibration)
 ├── weights/risk.pt       INDRA-Risk weights (optional: /simulate never depends on it)
-├── tools/make_windows.py builds the dashboard's demo initial states locally (git-ignored output)
 └── dashboard/            Vite + three.js + d3-geo front end (separate from the server)
 ```
 
@@ -32,7 +31,7 @@ python -m monsoon_r1.schema_validator http://127.0.0.1:8000
 The dashboard's demo starting states are **not shipped** in this repo (no archive of past weather). Generate them from the kit data once, before the demo. The server never reads them:
 
 ```bash
-python tools/make_windows.py --data data/india_climate_train.nc   # writes dashboard/public/windows.* (git-ignored)
+# Optional. The dashboard starts without these; the dated tour and Observed need local demo files that are not in the repo.
 cd dashboard
 npm install
 npm run dev          # http://localhost:5173 (server expected on :8000)
@@ -40,8 +39,8 @@ npm run dev          # http://localhost:5173 (server expected on :8000)
 ```
 
 * **Realistic 3D globe:** sunlight for the simulated date, city lights on the night side, ocean sun glint, relief shading, a scattering atmosphere, lit clouds that cast shadows, animated wind, falling rain where INDRA forecasts it, and lightning in heavy-rain cells.
-* **Light / dark theme** with a circular-reveal transition (`d`). **Layouts:** Full, Focus and Cinema (`f` / `c`). **Guided tour** of every event (`t`). **Snapshot** to PNG (`s`). Playback speed. Press `?` for all shortcuts.
-* **Pick your own start date:** under *Initial state*, choose the last of 3 consecutive days (2005-01-03 … 2021-12-21) and press *Forecast 10 days*. The days come from the dashboard-only helper `python tools/window_server.py` (port 8100, reads your local git-ignored `data/india_climate_train.nc`). The model server never reads weather data and the grader does not use this helper. Override with `?data=http://host:port`.
+* **Light / dark theme** with a circular-reveal transition (`d`). **Layouts:** Full, Focus and Cinema (`f` / `c`). **Guided tour** of every event (`t`, optional: needs local demo files, disabled in a clean clone). **Snapshot** to PNG (`s`). Playback speed. Press `?` for all shortcuts.
+* **Pick your own start date** (optional, dashboard only; needs `tools/window_server.py` running locally): under *Initial state*, choose the last of 3 consecutive days (2005-01-03 … 2021-12-21) and press *Forecast 10 days*. The days come from the dashboard-only helper `python tools/window_server.py` (port 8100, reads your local git-ignored `data/india_climate_train.nc`). The model server never reads weather data and the grader does not use this helper. Override with `?data=http://host:port`.
 * **Scenario report** (`r` or the download button): a one-click PDF of the current run, built in the browser: event, shock, view snapshot, Prime vs Multiverse impacts, all-India chart, city table, alerts, shock spread and engine checks.
 * **About the model** (`i`): how INDRA works in four steps, held-out 2021 results, model card and honest limits.
 * **Street 3D** (`z`, or *Street 3D ↗* next to the city picker): MapLibre GL map that flies to the city's state, then down to street level with satellite imagery, 3D buildings and terrain, with INDRA's live field draped on top (fading at street zoom, since one forecast cell is ~110 km). Needs internet for tiles (OpenFreeMap, AWS terrain, Esri imagery); the server and grader stay offline.
@@ -52,7 +51,7 @@ npm run dev          # http://localhost:5173 (server expected on :8000)
 * **ML risk layers** (Flood risk, Heat risk) and a 10-day **ML risk outlook** strip from INDRA-Risk (`POST /risk`).
 * **3D Globe / 2D Map** toggle (keys `g` / `m`). The whole planet is shown with a NASA Blue Marble texture, country borders and an atmosphere. INDRA's live fields are draped over its domain (6–38°N, 65–101°E).
 * **Layers:** temperature, rainfall, wind, pressure and moisture, plus animated wind particles and a cloud layer derived from simulated rain and moisture.
-* **Universes:** Timeline Prime, Multiverse, Δ Shock impact, Observed (verification against what really happened), and Ensemble σ.
+* **Universes:** Timeline Prime, Multiverse, Δ Shock impact, and Ensemble σ. Observed (verification against what really happened) is optional: it needs local demo files and is disabled in a clean clone.
 * **Shocks:** presets (the two judge shocks, heat dome, dry Western Ghats, cyclone seed) or a custom shock of any variable, magnitude and radius. Shift+click on the globe or map moves the shock centre. A shock outside the simulated domain is refused with an explanation.
 * **Impact module:** computed in the browser from the live `/simulate` output and the model's climatology:
   heatwave exposure, flood-risk area (IMD heavy rain ≥ 64.5 mm/day), crop water stress, rain departure from normal, wind power at 100 m, peak rain, and 5-member ensemble confidence.
@@ -128,7 +127,6 @@ python train.py --data data/india_climate_train.nc --out weights/indra.pt --bs 6
 python calibrate.py --weights weights/indra.pt          # fit on 2015-2020 (training years only)
 python calibrate_rain.py --weights weights/indra.pt      # rain quantile map, half strength (qmix 0.5), training years only
 python train_risk.py --indra weights/indra.pt --out weights/risk.pt
-python tools/make_windows.py --data data/india_climate_train.nc
 PYTHONPATH=path/to/yug-monsoon-kit python evaluate.py --year 2021
 ```
 
