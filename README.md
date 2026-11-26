@@ -1,22 +1,92 @@
 # INDRA: a climate digital twin of India
 
-*Multiverse of Monsoon, Yugaantar DevForge, Track 2*
+*Multiverse of Monsoon · Yugaantar DevForge · Track 2 · Team Omnix*
 
-INDRA rolls India's daily weather forward from the last 3 days (Timeline Prime). It also branches alternate universes from a local shock, such as a warmer Bay of Bengal or a stalled monsoon wind (Multiverse). A live 3D globe and 2D world-map dashboard drives everything, with an impact module for heatwave, flood, crop stress, wind energy and ensemble uncertainty.
+INDRA rolls India's daily weather forward from the last three observed days, and branches alternate universes from a local shock (a warmer Bay of Bengal, a stalled monsoon wind). It runs five perturbed copies to show where they agree on heavy rain. Everything is shown in a live 3D globe and 2D map.
 
+> **Not an official IMD forecast.** A research prototype: 1-degree cells (about 110 km), India only, rule-based alerts, validated on 2019, 2020 and 2021 (see Limits).
+
+## Launch video
+
+[![INDRA launch video: click to watch brag.mp4](docs/brag.jpg)](docs/brag.mp4)
+
+[**Watch the 20-second launch video (brag.mp4)**](docs/brag.mp4) · preview below
+
+![INDRA preview](docs/brag-preview.gif)
+
+## Key numbers
+
+| What | Value | Source |
+|---|---|---|
+| RMSE skill, days 1 / 4 / 8 (2021, mean over channels) | **0.278 / 0.111 / 0.016** | `evaluate.py`, full 2021 run |
+| Heavy-rain CSI at **10 mm/day** (the scored threshold), days 1 / 4 / 8 | **0.53 / 0.31 / 0.28** (persistence 0.20, climatology 0.26 at day 8) | same |
+| Day-8 rain RMSE skill | **−0.042** (worse than the better reference; plainly stated) | same |
+| Estimated automatic score, 2021 | **43.7 / 45** (plus brief, judged by a person) | same |
+| Rolling-origin validation skill mean, 2019 / 2020 / 2021 | **0.139 / 0.137 / 0.133** (2021 used for some settings) | `dashboard/public/validation/*.json` |
+| Official schema validator | **6 / 6 checks pass** | `monsoon_r1.schema_validator` |
+| Repo scan on a fresh clone | **15 / 15, no flags** | `monsoon_r1.repo_scan` |
+| Forecast cost | 0.1–0.2 s per 10-day call on CPU (limit 5 s) | judge limit |
+
+## How it works
+
+```mermaid
+flowchart LR
+  A["3 observed days<br/>6 channels, 32 x 36 cells"] --> B["INDRA stepper<br/>local CNN, 7 cells per day"]
+  B --> C["Calibration<br/>least-squares shrinkage to climate"]
+  C --> D["10-day rollout<br/>physical units"]
+  S["Shock<br/>preset or custom"] --> E["Multiverse<br/>calib(F(x)) + F(x+shock) - F(x)"]
+  D --> E
+  D --> F["Impact module<br/>heat · flood · crops · wind"]
+  D --> G["INDRA-Risk<br/>heavy rain · heat probabilities"]
+  D --> I["Ensemble<br/>5 perturbed copies"]
+  E --> H["Dashboard<br/>3D globe · 2D map · alerts · reach map · audit"]
+  F --> H
+  G --> H
+  I --> H
 ```
-repo/
-├── serve.py              inference server (contract: POST /health, POST /simulate)
-├── indra_model/net.py    the model: local residual neural stepper + physical constraints
-├── indra_model/risk.py   INDRA-Risk: learned heavy-rain / heat-stress probabilities on top of a forecast
-├── train.py              training pipeline (single-step, then autoregressive rollout curriculum)
-├── calibrate.py          per-lead anomaly calibration (least-squares shrinkage towards climate)
-├── train_risk.py         trains INDRA-Risk on INDRA's own calibrated forecasts vs observed outcomes
-├── evaluate.py           offline scoring with the organisers' monsoon_r1.scoring
-├── weights/indra.pt      trained weights (+ normalisation, static fields, climatology, calibration)
-├── weights/risk.pt       INDRA-Risk weights (optional: /simulate never depends on it)
-└── dashboard/            Vite + three.js + d3-geo front end (separate from the server)
+
+## Components
+
+| Part | What it does | Where |
+|---|---|---|
+| Stepper | Residual CNN, 0.53 M parameters, physical limits on every output | `indra_model/net.py` |
+| Calibration | Per-lead shrinkage fitted on training years only | `calibrate.py` |
+| Server | Contract endpoints `/health`, `/simulate`, `/risk` | `serve.py` |
+| INDRA-Risk | Small CNN for heavy-rain and heat probabilities (AUC 0.90 / 0.99 on 2021) | `indra_model/risk.py`, `train_risk.py` |
+| Scoring | Organisers' code, unchanged, plus our evaluation wrapper | `evaluate.py` (uses `monsoon_r1`) |
+| Dashboard | Vite + three.js globe, d3 2D map, MapLibre Street 3D, PDF reports | `dashboard/` |
+| Launch video | 20 s motion graphics (Hyperframes), with the real app screenshot | `docs/brag.mp4` |
+| Brief | Two-page PDF: model, results, limits, impact | `brief/INDRA_brief.pdf` |
+
+### Dashboard at a glance
+
+| View | 3D | Interactive | Notes |
+|---|---|---|---|
+| Globe / 2D map | Yes (globe) | Pick a state, shock, layer, day | Shift+click moves a shock |
+| Multiverse | Shock vs prime | Briefing card with pins | Close button, reset to baseline |
+| Ensemble | Chance and spread maps | Left-panel "what changed" card | Audit log explains each step (3D) |
+| Validation | Hover readouts | Click a chart for full detail, pausable year replay | 2019, 2020, 2021 |
+| State audit and +1 K | Affected vs unaffected states | Table | Thresholds stated in the panel |
+
+## Preview: how a run flows
+
+1. Pick a start (the last three days of a window) and press **Forecast 10 days**.
+2. Choose a shock (Warm Bay of Bengal, monsoon stall, heat dome…) and **Run multiverse**.
+3. Read the briefing, the reach map and the impact cards.
+4. **Rain chance** runs five perturbed copies and shows where they agree on heavy rain. The audit log explains each step.
+5. **Validation** shows how the recipe does on years it did not train on.
+
+Full run instructions are below.
+
+## Judges' quick check
+
+```bash
+pip install torch numpy fastapi uvicorn
+python serve.py --port 8000
+python -m monsoon_r1.schema_validator http://127.0.0.1:8000     # expect 6 / 6
 ```
+
+Then open the dashboard (see Dashboard below) for the visual checks.
 
 ## Run (offline, CPU)
 
@@ -59,6 +129,13 @@ npm run dev          # http://localhost:5173 (server expected on :8000)
 * **Engine telemetry:** inference time, NaN check, rain ≥ 0, temperature range, and a live zero-shock determinism check.
 
 ## Results (held-out 2021, never used for training or calibration)
+
+![Heavy-rain CSI at 10 mm/day, 2021, INDRA vs persistence vs climatology](docs/chart-csi-2021.png)
+
+![Rolling-origin validation: skill and day-8 heavy-rain CSI for 2019, 2020 and 2021](docs/chart-validation.png)
+
+![Monsoon-stall shock: response energy and share inside the box, days 1 to 10](docs/chart-monsoon-stall.png)
+
 
 Scored with the organisers' own `monsoon_r1.scoring` on all 355 ten-day windows of 2021 (`python evaluate.py --year 2021 --every 1`).
 

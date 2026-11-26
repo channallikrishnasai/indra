@@ -6,3 +6,10 @@ dashboard/dist/
 dashboard/public/windows.bin
 dashboard/public/windows.json
 private/
+brag-output-*/frames/
+brag-output-*/composition/.hyperframes/
+brag-output-*/composition/renders/
+brag-output-*/brag.mp4
+brag-output-*/brag-preview.gif
+brag-output-*/brag.jpg
+brag-output-*/composition/assets/music/

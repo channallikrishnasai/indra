@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      :root {
+        --bg: #03060d;
+        --text: #e8effb;
+        --muted: #8ea0bb;
+        --accent: #46d3ff;
+        --violet: #7c5cff;
+        --warm: #ff7a45;
+        --good: #3ddc97;
+        --font-display: "Inter", sans-serif;
+        --font-mono: "JetBrains Mono", monospace;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--bg); }
+      #root { position: relative; width: 1920px; height: 1080px; overflow: hidden; font-family: var(--font-display); color: var(--text); }
+
+      /* backdrop: two drifting aurora glows and a perspective floor grid */
+      .aurora { position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.55; }
+      #au1 { width: 900px; height: 700px; left: -200px; top: -150px; background: radial-gradient(circle, #46d3ff 0%, transparent 65%); }
+      #au2 { width: 1000px; height: 800px; right: -250px; bottom: -250px; background: radial-gradient(circle, #7c5cff 0%, transparent 65%); }
+      .floor { position: absolute; left: -40%; right: -40%; bottom: -10%; height: 70%; transform: perspective(900px) rotateX(64deg); transform-origin: 50% 100%;
+        background-image: linear-gradient(rgba(70,211,255,.22) 1.5px, transparent 1.5px), linear-gradient(90deg, rgba(70,211,255,.22) 1.5px, transparent 1.5px);
+        background-size: 110px 110px; opacity: 0.35; mask-image: linear-gradient(transparent, #000 40%); -webkit-mask-image: linear-gradient(transparent, #000 40%); }
+
+      .scene { position: absolute; inset: 0; }
+      .center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+      .display { font-weight: 800; letter-spacing: -0.035em; line-height: 1.02; }
+      .mono { font-family: var(--font-mono); }
+      .kicker { font-family: var(--font-mono); font-size: 22px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent); }
+      .sub { font-size: 34px; color: var(--muted); font-weight: 500; }
+      .chip { display: inline-block; padding: 10px 20px; border-radius: 999px; border: 1px solid rgba(70,211,255,.45); background: rgba(70,211,255,.08); font-family: var(--font-mono); font-size: 20px; color: var(--accent); }
+
+      /* scene 3: the real app screenshot on a tilted 3D card */
+      .card3d { position: absolute; left: 50%; top: 50%; width: 1240px; height: 700px; margin-left: -620px; margin-top: -350px; perspective: 1600px; }
+      .card3d .face { position: absolute; inset: 0; border-radius: 22px; overflow: hidden; border: 1px solid rgba(70,211,255,.4); box-shadow: 0 60px 120px -30px rgba(0,0,0,.8), 0 0 80px -10px rgba(70,211,255,.35); }
+      .card3d img { width: 100%; height: 100%; object-fit: cover; object-position: center 35%; display: block; }
+
+      .ring { position: absolute; left: 50%; top: 52%; width: 360px; height: 360px; margin-left: -180px; margin-top: -180px; }
+      .ring .dot { position: absolute; left: 50%; top: 50%; width: 30px; height: 30px; margin: -15px 0 0 -15px; border-radius: 50%; background: var(--warm); box-shadow: 0 0 26px var(--warm); }
+
+      .skill { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 400px; height: 260px; border-radius: 22px; border: 1px solid rgba(70,211,255,.35); background: linear-gradient(160deg, rgba(70,211,255,.12), rgba(124,92,255,.06)); }
+      .skill .yr { font-family: var(--font-mono); font-size: 24px; color: var(--muted); letter-spacing: .12em; }
+      .skill .val { font-family: var(--font-mono); font-size: 76px; font-weight: 700; color: var(--text); }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="20" data-width="1920" data-height="1080">
+      <div class="aurora" id="au1"></div>
+      <div class="aurora" id="au2"></div>
+      <div class="floor"></div>
+
+      <!-- 1. hook, 0.0-2.6 s -->
+      <section class="scene clip" id="s1" data-start="0" data-duration="2.6" data-track-index="1">
+        <div class="center">
+          <div class="kicker" style="margin-bottom: 26px">Monsoon, 10 days ahead</div>
+          <h1 class="display" style="font-size: 96px; max-width: 1500px" id="h1a">Where will the monsoon go in ten days?</h1>
+          <p class="display" style="font-size: 62px; margin-top: 28px; color: var(--accent)" id="h1b">Five futures. One model.</p>
+        </div>
+      </section>
+
+      <!-- 2. reveal, 2.6-5.6 s -->
+      <section class="scene clip" id="s2" data-start="2.6" data-duration="3" data-track-index="1">
+        <div class="center">
+          <div class="display" style="font-size: 200px; letter-spacing: 0.06em; perspective: 900px" id="wordmark">
+            <span class="ch">I</span><span class="ch">N</span><span class="ch">D</span><span class="ch">R</span><span class="ch">A</span>
+          </div>
+          <p class="sub" style="margin-top: 18px" id="s2sub">Climate digital twin of India</p>
+          <p class="mono" style="margin-top: 22px; font-size: 22px; color: var(--muted)" id="s2team">Team Omnix · Yugaantar DevForge · Track 2</p>
+        </div>
+      </section>
+
+      <!-- 3. real UI, 5.6-9.6 s -->
+      <section class="scene clip" id="s3" data-start="5.6" data-duration="4" data-track-index="1">
+        <div class="card3d" id="card">
+          <div class="face"><img src="assets/shots/app-rain-chance.png" alt="INDRA dashboard: heavy-rain chance map, 20 July 2021" /></div>
+        </div>
+        <div style="position: absolute; left: 120px; bottom: 110px">
+          <span class="chip" id="chip3">Live dashboard, not a mock-up</span>
+        </div>
+        <p class="display" style="position: absolute; right: 120px; bottom: 96px; font-size: 40px; max-width: 560px; text-align: right" id="cap3">10-day forecast from observed weather.</p>
+      </section>
+
+      <!-- 4. multiverse, 9.6-12.6 s -->
+      <section class="scene clip" id="s4" data-start="9.6" data-duration="3" data-track-index="1">
+        <div class="center">
+          <div class="kicker" style="margin-bottom: 22px">Multiverse · state audit</div>
+          <h2 class="display" style="font-size: 88px" id="h4a">Warm the Bay of Bengal by <span class="mono" style="color: var(--warm)" id="k4">0</span> K.</h2>
+          <p class="display" style="font-size: 52px; margin-top: 30px"><span class="mono" style="color: var(--accent)" id="k4b">0</span> states change.<span style="color: var(--muted)" id="s4b"> 20 stay as they were.</span></p>
+          <p class="mono" style="margin-top: 22px; font-size: 20px; color: var(--muted)" id="s4c">2021 window · Warm Bay of Bengal shock</p>
+        </div>
+      </section>
+
+      <!-- 5. ensemble, 12.6-15.6 s -->
+      <section class="scene clip" id="s5" data-start="12.6" data-duration="3" data-track-index="1">
+        <div class="ring" id="ring">
+          <div class="dot" data-a="0"></div><div class="dot" data-a="72"></div><div class="dot" data-a="144"></div><div class="dot" data-a="216"></div><div class="dot" data-a="288"></div>
+        </div>
+        <div class="center" style="justify-content: flex-start; padding-top: 130px">
+          <h2 class="display" style="font-size: 76px" id="h5a">Five copies of the future.</h2>
+        </div>
+        <div style="position: absolute; left: 0; right: 0; bottom: 120px; text-align: center">
+          <p class="display" style="font-size: 44px" id="h5b"><span class="mono" style="color: var(--warm)" id="k5">0</span> of 5 copies agree on heavy rain in 5 cells.</p>
+          <p class="mono" style="margin-top: 14px; font-size: 20px; color: var(--muted)" id="s5c">20 Jul 2021 · day +3 · 64.5 mm/day (IMD heavy)</p>
+        </div>
+      </section>
+
+      <!-- 6. validation and limits, 15.6-18.2 s -->
+      <section class="scene clip" id="s6" data-start="15.6" data-duration="2.6" data-track-index="1">
+        <div class="center">
+          <div class="kicker" style="margin-bottom: 26px">Validated on three years</div>
+          <div style="display: flex; gap: 28px">
+            <div class="skill" id="sk1"><span class="yr">2019</span><span class="val" id="v1">0.00</span><span class="mono" style="color: var(--muted); font-size: 18px">skill mean</span></div>
+            <div class="skill" id="sk2"><span class="yr">2020</span><span class="val" id="v2">0.00</span><span class="mono" style="color: var(--muted); font-size: 18px">skill mean</span></div>
+            <div class="skill" id="sk3"><span class="yr">2021</span><span class="val" id="v3">0.00</span><span class="mono" style="color: var(--muted); font-size: 18px">skill mean</span></div>
+          </div>
+          <p class="display" style="font-size: 34px; margin-top: 40px; color: var(--muted)" id="s6b">Day-8 rain is weaker (<span class="mono" style="color: var(--warm)">-0.042</span>). Not an official IMD forecast.</p>
+        </div>
+      </section>
+
+      <!-- 7. outro, 18.2-20.0 s -->
+      <section class="scene clip" id="s7" data-start="18.2" data-duration="1.8" data-track-index="1">
+        <div class="center">
+          <div class="display" style="font-size: 150px; letter-spacing: 0.06em" id="outro">INDRA</div>
+          <p class="display" style="font-size: 44px; margin-top: 14px; color: var(--accent)" id="s7a">The monsoon, in five futures.</p>
+          <p class="mono" style="margin-top: 26px; font-size: 22px; color: var(--muted)" id="s7b">github.com/channallikrishnasai/indra</p>
+        </div>
+      </section>
+
+      <audio id="music" class="clip" data-start="0" data-duration="20" data-track-index="2" data-volume="0.35" data-fade-out="1.5" src="assets/music/happy-beats-business-moves-vol-1-by-ende-dot-app.mp3"></audio>
+    </div>
+
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      // every fromTo starts with immediateRender off, so a seek before its start keeps the authored values
+      const FT = (targets, from, to, at) => tl.fromTo(targets, from, Object.assign({ immediateRender: false }, to), at);
+      const ease = "power4.out";
+
+      // backdrop drift (seekable, deterministic)
+      FT("#au1", { x: -60, y: 40 }, { x: 80, y: -30, duration: 20, ease: "sine.inOut" }, 0);
+      FT("#au2", { x: 50, y: -20 }, { x: -70, y: 30, duration: 20, ease: "sine.inOut" }, 0);
+      FT(".floor", { backgroundPositionY: 0 }, { backgroundPositionY: 110, duration: 20, ease: "none" }, 0);
+
+      // 1. hook
+      FT("#h1a", { opacity: 0, y: 40, filter: "blur(10px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.7, ease }, 0.05);
+      FT("#h1b", { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.6, ease }, 0.7);
+
+      // 2. reveal: letters rise with a 3D tilt
+      FT("#wordmark .ch", { opacity: 0, y: 120, rotateX: -80, transformOrigin: "50% 100%" }, { opacity: 1, y: 0, rotateX: 0, duration: 0.75, ease, stagger: 0.09 }, 2.7);
+      FT("#s2sub", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.55, ease }, 3.5);
+      FT("#s2team", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power1.out" }, 3.9);
+
+      // 3. real UI: the card swings into place in 3D
+      FT("#card", { rotateY: -26, rotateX: 14, scale: 0.86, opacity: 0, transformOrigin: "50% 50%" }, { rotateY: 0, rotateX: 0, scale: 1, opacity: 1, duration: 1.1, ease: "expo.out" }, 5.7);
+      FT("#chip3", { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.5, ease }, 6.6);
+      FT("#cap3", { opacity: 0, x: 30 }, { opacity: 1, x: 0, duration: 0.5, ease }, 7.0);
+
+      // 4. multiverse: counters
+      const c4 = { a: 0, b: 0 };
+      FT("#k4", { textContent: 0 }, { textContent: 3, duration: 0.8, ease: "power2.out", snap: { textContent: 1 } }, 9.9);
+      FT("#k4b", { textContent: 0 }, { textContent: 9, duration: 0.9, ease: "power2.out", snap: { textContent: 1 } }, 10.6);
+      FT("#h4a", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.6, ease }, 9.65);
+      FT("#s4b", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power1.out" }, 11.2);
+      FT("#s4c", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 11.7);
+
+      // 5. ensemble: five dots orbit, count of copies agreeing
+      FT("#h5a", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.6, ease }, 12.7);
+      FT("#ring", { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.7, ease }, 12.8);
+      document.querySelectorAll("#ring .dot").forEach((d, i) => {
+        const a0 = Number(d.dataset.a) * Math.PI / 180;
+        // place each dot on the ring with a deterministic angle, orbiting over the scene
+        const R = 160;
+        FT(d, { x: Math.cos(a0) * R, y: Math.sin(a0) * R }, { x: Math.cos(a0 + Math.PI * 2 * 0.5) * R, y: Math.sin(a0 + Math.PI * 2 * 0.5) * R, duration: 3, ease: "none" }, 12.6);
+      });
+      const c5 = { v: 0 };
+      FT("#k5", { textContent: 0 }, { textContent: 5, duration: 1.0, ease: "power2.out", snap: { textContent: 1 } }, 13.4);
+      FT("#h5b", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.6, ease }, 13.2);
+      FT("#s5c", { opacity: 0 }, { opacity: 1, duration: 0.5 }, 14.0);
+
+      // 6. validation: count the skills up
+      FT("#sk1", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.6, ease }, 15.7);
+      FT("#sk2", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.6, ease }, 15.85);
+      FT("#sk3", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.6, ease }, 16.0);
+      FT("#v1", { textContent: "0.00" }, { textContent: "0.139", duration: 0.9, ease: "power2.out", snap: { textContent: 0.001 } }, 16.0);
+      FT("#v2", { textContent: "0.00" }, { textContent: "0.137", duration: 0.9, ease: "power2.out", snap: { textContent: 0.001 } }, 16.15);
+      FT("#v3", { textContent: "0.00" }, { textContent: "0.133", duration: 0.9, ease: "power2.out", snap: { textContent: 0.001 } }, 16.3);
+      FT("#s6b", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.5, ease }, 17.2);
+
+      // 7. outro
+      FT("#outro", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.7, ease }, 18.3);
+      FT("#s7a", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5, ease }, 18.8);
+      FT("#s7b", { opacity: 0 }, { opacity: 1, duration: 0.4 }, 19.2);
+      // the whole film fades to the background at the very end
+      tl.to("#root", { opacity: 0.0, duration: 0.5, ease: "power1.in" }, 19.5);
+
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

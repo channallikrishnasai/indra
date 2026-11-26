@@ -17,12 +17,12 @@ pdfmetrics.registerFont(TTFont("AI", str(F / "ariali.ttf")))
 pdfmetrics.registerFontFamily("A", normal="A", bold="AB", italic="AI", boldItalic="AB")
 
 INK, ACC, MUT, LINE = colors.HexColor("#0e1a2c"), colors.HexColor("#0a6fb8"), colors.HexColor("#5a6c86"), colors.HexColor("#c9d6e6")
-body = ParagraphStyle("b", fontName="A", fontSize=10, leading=12.6, textColor=INK, spaceAfter=2.5)
-small = ParagraphStyle("s", parent=body, fontSize=8.2, leading=10.2, textColor=MUT, spaceAfter=1.5)
+body = ParagraphStyle("b", fontName="A", fontSize=8.6, leading=10.4, textColor=INK, spaceAfter=1.6)
+small = ParagraphStyle("s", parent=body, fontSize=7.4, leading=9.0, textColor=MUT, spaceAfter=1)
 h1 = ParagraphStyle("h1", fontName="AB", fontSize=17, leading=20, textColor=INK)
 sub = ParagraphStyle("sub", parent=body, textColor=MUT, fontSize=9.2, leading=11.5)
-h2 = ParagraphStyle("h2", fontName="AB", fontSize=11, leading=13, textColor=ACC, spaceBefore=5, spaceAfter=2)
-cell = ParagraphStyle("c", parent=body, fontSize=8.8, leading=10.6, spaceAfter=0)
+h2 = ParagraphStyle("h2", fontName="AB", fontSize=9.6, leading=11.5, textColor=ACC, spaceBefore=3, spaceAfter=1.5, keepWithNext=1)
+cell = ParagraphStyle("c", parent=body, fontSize=7.8, leading=9.4, spaceAfter=0)
 cellb = ParagraphStyle("cb", parent=cell, fontName="AB")
 cap = ParagraphStyle("cap", parent=small, fontName="AI")
 P = lambda t, s=body: Paragraph(t, s)
@@ -94,11 +94,11 @@ s += [P("4 · Failure modes and limits", h2)] + B([
     "<b>Day-8 rain</b> is sharper (blur ratio 0.67) but slightly less accurate than repeat-yesterday. <b>Domain-bound:</b> remote drivers (ENSO, the Atlantic) enter only via the grid state.",
 ])
 s += [P("5 · System architecture", h2), arch()]
-s.append(PageBreak())
+pass  # one flow, two pages
 
 # ------------------------------------------------------------------ page 2: visualisation + impact
 s += [P("6 · Visualisation: the dashboard (live from POST /simulate, nothing pre-rendered)", h2),
-      Image(str(HERE / "img" / "dashboard_delta.jpg"), width=182 * mm, height=182 * mm * 1800 / 3200),
+      Image(str(HERE / "img" / "dashboard_delta.jpg"), width=120 * mm, height=120 * mm * 1800 / 3200),
       P("Monsoon onset 2021-06-02, “Warm Bay of Bengal” shock (+3 K, +15% moisture), Δ shock-impact view at day +4: the anomaly stays on its box. "
         "Right: impact cards with the multiverse difference and the INDRA-Risk 10-day outlook.", cap)]
 s += B([
@@ -129,7 +129,10 @@ s += [P("8 · Integrity notes", h2)] + [P(t, small) for t in [
     "• The dashboard needs <i>npm install</i> once with internet, and its optional Street 3D view loads map tiles (OpenFreeMap, AWS terrain, Esri imagery) while running; everything else runs offline, and the grader runs only serve.py. No weather APIs anywhere.",
 ]]
 
+s += [Spacer(1, 4), Image(str(HERE / "img" / "brag-poster.jpg"), width=120 * mm, height=120 * mm * 1080 / 1920),
+      P("Launch video (20 s, 1920x1080): brag.mp4 in the repo, poster frame shown. Made with the Hyperframes pipeline; every number in it comes from the runs above.", small)]
+
 out = HERE / "INDRA_brief.pdf"
-SimpleDocTemplate(str(out), pagesize=A4, leftMargin=14 * mm, rightMargin=14 * mm, topMargin=11 * mm, bottomMargin=10 * mm,
+SimpleDocTemplate(str(out), pagesize=A4, leftMargin=13 * mm, rightMargin=13 * mm, topMargin=9 * mm, bottomMargin=8 * mm,
                   title="INDRA: climate digital twin of India", author="Team Omnix").build(s)
 print("wrote", out)
