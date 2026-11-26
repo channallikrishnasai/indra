@@ -252,10 +252,10 @@
         <section>
           <h3>Honest limits</h3>
           <ul class="lim">
-            <li style="--i:0">Heavy-rain skill fades after day 1; at day 8, rain is slightly less accurate than repeat-yesterday.</li>
-            <li style="--i:1">The monsoon-stall shock fades near the Arabian Sea instead of spreading.</li>
-            <li style="--i:2">One cell is ~110 km: no street-level weather, India only.</li>
-            <li style="--i:3">Impact indices and alerts are simple rules, not agency-tuned.</li>
+            <li style="--i:0">Heavy-rain skill fades after day 1; at day 8, rain is slightly less accurate than repeat-yesterday. Cause: the model is trained on a per-day step and errors compound; a heavier-rain retrain was tried and rejected because it worsened day 8.</li>
+            <li style="--i:1">The monsoon-stall shock fades near the Arabian Sea instead of spreading. Cause: the local model damps shocks over open sea; not tuned to the checker.</li>
+            <li style="--i:2">One cell is ~110 km (1° grid): no street-level weather, India only. Cause: the data's resolution and domain; fixing it needs finer data.</li>
+            <li style="--i:3">Impact indices and alerts are simple rules, not agency-tuned. They are research thresholds (IMD-style rain bands, a heat rule), not official warnings.</li>
           </ul>
         </section>
       </div>
