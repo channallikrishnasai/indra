@@ -112,6 +112,7 @@ const street = {
   setSatellite(on) { streetImpl?.setSatellite(on); },
   async flyToCity(lat, lon) { (await this.load()).flyToCity(lat, lon); },
   async overview() { (await this.load()).overview(); },
+  snapshot() { return streetImpl ? streetImpl.snapshot() : Promise.resolve(null); },
 };
 
 function pick(lat, lon) {
@@ -467,15 +468,67 @@ async function tour() {
   if (S.tour === id) tour();
 }
 
-function snapshot() {
-  let url;
-  if (S.view === 'globe') { globe.frame(0, frameOpts()); url = globe.snapshot(); }
-  else {
-    const c = document.createElement('canvas'), m = map.c.mapBase; c.width = m.width; c.height = m.height; const g = c.getContext('2d');
-    for (const k of ['mapBase', 'mapField', 'mapWind', 'mapUi']) g.drawImage(map.c[k], 0, 0); url = c.toDataURL('image/png');
+/** current view as an image (globe, 2D map or Street 3D) -> { data: dataURL, w, h } */
+async function viewImage(type = 'image/jpeg') {
+  let c;
+  if (S.view === 'globe') { globe.frame(0, frameOpts()); c = globe.renderer.domElement; }
+  else if (S.view === 'street') {
+    const data = await street.snapshot(); if (!data) return null;
+    const cv = street.map.getCanvas(); return { data, w: cv.width, h: cv.height };
+  } else {
+    c = document.createElement('canvas'); const m = map.c.mapBase; c.width = m.width; c.height = m.height; const g = c.getContext('2d');
+    g.fillStyle = getComputedStyle(document.body).getPropertyValue('--mapbg') || '#02050b'; g.fillRect(0, 0, c.width, c.height);   // JPEG has no alpha
+    for (const k of ['mapBase', 'mapField', 'mapWind', 'mapUi']) g.drawImage(map.c[k], 0, 0);
   }
-  const a = Object.assign(document.createElement('a'), { href: url, download: `indra-${S.win?.date || 'view'}-day${Math.round(S.day)}-${S.mode}.png` }); a.click();
+  return { data: c.toDataURL(type, 0.86), w: c.width, h: c.height };
+}
+async function snapshot() {
+  const img = await viewImage('image/png'); if (!img) return toast('Nothing to capture yet.', 'info');
+  const a = Object.assign(document.createElement('a'), { href: img.data, download: `indra-${S.win?.date || 'view'}-day${Math.round(S.day)}-${S.mode}.png` }); a.click();
   toast('Snapshot saved.', 'info');
+}
+
+const MODE_NAME = { prime: 'Timeline Prime', multi: 'Multiverse', delta: 'Delta shock-impact', truth: 'Observed', spread: 'Ensemble spread' };
+async function downloadReport() {
+  if (!S.prime || !S.clim || !S.land) return toast('Wait for the simulation to finish first.', 'info');
+  $('reportBtn').disabled = true; toast('Building the scenario report…', 'info');
+  try {
+    const [{ makeReport }, image] = await Promise.all([import('./report.js'), viewImage()]);
+    const P = impacts(S.prime, S.clim, S.land), M = S.multi ? impacts(S.multi, S.clim, S.land) : null;
+    const k = (o, f) => o && f(o);
+    const c = CITIES[$('citySel').value], cp = cityValues(S.prime, c), cm = S.multi && cityValues(S.multi, c);
+    const alerts = (S.multi && S.alertsMulti) || S.alertsPrime || [];
+    const counts = Object.fromEntries(SEVERITIES.map(v => [v, alerts.filter(a => a.severity === v).length]));
+    const prop = S.multi && S.shock ? propagation(S.prime, S.multi, S.shock) : null;
+    const t = (a, kk) => a[kk] - 273.15;
+    const name = makeReport({
+      win: S.win, shock: S.multi ? S.shock : null, mode: MODE_NAME[S.mode] || S.mode, day: Math.round(S.day), image,
+      impact: [['Heatwave exposure', P.heatPeak, M?.heatPeak, '% land', 1], ['Flood-risk area', P.floodArea / 1000, k(M, m => m.floodArea / 1000), 'k km2', 0],
+        ['Crop water stress', P.cropStress, M?.cropStress, '%', 1], ['Rain vs normal', P.rainDeparture, M?.rainDeparture, '%', 0],
+        ['Wind power at 100 m', P.windPower, M?.windPower, 'W/m2', 0], ['Peak daily rain', P.peakRain, M?.peakRain, 'mm', 0]],
+      chart: { name: 'Temperature', unit: 'C', series: [['Prime', [70, 160, 230], landMeanSeries(S.prime, S.land, t), false],
+        ...(S.multi ? [['Multiverse', [255, 122, 69], landMeanSeries(S.multi, S.land, t), false]] : []), ['Observed', [14, 26, 44], landMeanSeries(S.truth, S.land, t), true]] },
+      city: { name: c ? c[0] : 'All India (land average)', rows: cp.slice(1).map((v, i) => [i + 1, v.t, v.r, v.w, cm && cm[i + 1].t - v.t, cm && cm[i + 1].r - v.r, cm && cm[i + 1].w - v.w]) },
+      alerts: { counts, list: alerts }, prop: prop && { near: prop[0].nearFrac, r1: prop[0].radius, r10: prop[prop.length - 1].radius },
+      tele: { model: S.modelName, ms: S.lastMs, zero: S.nullDiff },
+    });
+    toast(`Saved ${name}`, 'info');
+  } catch (e) { toast(`Report failed: ${e.message}`); }
+  finally { $('reportBtn').disabled = false; }
+}
+
+function toggleAbout(on) {
+  const a = $('about'); a.hidden = !(on ?? a.hidden);
+  if (a.hidden) return;
+  // count the headline numbers up from 0 each time the panel opens
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches, t0 = performance.now();
+  const els = [...a.querySelectorAll('[data-count]')];
+  const tick = now => {
+    const p = reduce ? 1 : Math.min(1, (now - t0 - 300) / 1100), e = 1 - Math.pow(1 - Math.max(0, p), 3);
+    for (const el of els) el.textContent = (+el.dataset.count * e).toFixed(+el.dataset.dec);
+    if (p < 1) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
 }
 
 function initUI() {
@@ -505,7 +558,8 @@ function initUI() {
   };
   $('optRotate').onchange = e => { globe.autoRotate = e.target.checked || S.layout === 'cinema'; };
   $('themeBtn').onclick = e => setTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light', e);
-  $('tourBtn').onclick = tour; $('snapBtn').onclick = snapshot;
+  $('tourBtn').onclick = tour; $('snapBtn').onclick = snapshot; $('reportBtn').onclick = downloadReport;
+  $('aboutBtn').onclick = () => toggleAbout(); $('aboutClose').onclick = () => toggleAbout(false); $('about').onclick = e => { if (e.target.id === 'about') toggleAbout(false); };
   $('citySel').innerHTML = '<option value="">All India (land average)</option>' + CITIES.map((c, i) => `<option value="${i}">${c[0]}</option>`).join('');
   $('citySel').onchange = () => { const c = CITIES[$('citySel').value]; renderCity(); if (!c) return S.view === 'street' && street.overview();
     S.view === 'street' ? street.flyToCity(c[1], c[2]) : S.view === 'globe' ? globe.flyTo(c[1], c[2], 1.9, 1.4) : map.flyTo(c[1], c[2], 8); };
@@ -526,8 +580,8 @@ function initUI() {
     else if (k === 'g') setView('globe'); else if (k === 'm') setView('map'); else if (k === 'z') setView('street');
     else if (k === 'd') setTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light');
     else if (k === 'f') setLayout(S.layout === 'focus' ? 'full' : 'focus'); else if (k === 'c') setLayout(S.layout === 'cinema' ? 'full' : 'cinema');
-    else if (k === 'a') toggleAlerts(); else if (k === 't') tour(); else if (k === 's') snapshot(); else if (k === 'v') vb.click();
-    else if (k === '?') $('help').hidden = !$('help').hidden; else if (k === 'Escape') { $('help').hidden = true; menu.hidden = true; }
+    else if (k === 'a') toggleAlerts(); else if (k === 'r') downloadReport(); else if (k === 'i') toggleAbout(); else if (k === 't') tour(); else if (k === 's') snapshot(); else if (k === 'v') vb.click();
+    else if (k === '?') $('help').hidden = !$('help').hidden; else if (k === 'Escape') { $('help').hidden = true; menu.hidden = true; toggleAbout(false); }
     else if ('1234'.includes(k)) setMode(['prime', 'multi', 'delta', 'truth'][+k - 1]);
   });
   setTheme(document.documentElement.dataset.theme || 'dark');

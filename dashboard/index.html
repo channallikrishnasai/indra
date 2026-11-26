@@ -63,6 +63,12 @@
         <svg viewBox="0 0 24 24"><path d="M12 2 1 21h22L12 2zm1 15h-2v-2h2v2zm0-4h-2V9h2v4z" /></svg><span>Alerts</span><b class="badge" id="alertsBadge" hidden>0</b>
       </button>
       <button class="icon" id="tourBtn" title="Guided tour of all events (t)"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-2 14.5v-9l7 4.5-7 4.5z" /></svg><span>Tour</span></button>
+      <button class="icon round" id="reportBtn" title="Download scenario report PDF (r)" aria-label="Download scenario report">
+        <svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm8 1.5V8h4.5L14 3.5zM11 10v5.2l-2.1-2.1-1.4 1.4L12 19l4.5-4.5-1.4-1.4-2.1 2.1V10h-2z" /></svg>
+      </button>
+      <button class="icon round" id="aboutBtn" title="About the model (i)" aria-label="About the model">
+        <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" /></svg>
+      </button>
       <button class="icon round" id="snapBtn" title="Save snapshot (s)"><svg viewBox="0 0 24 24"><path d="M9 3 7.2 5H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.2L15 3H9zm3 14a5 5 0 1 1 0-10 5 5 0 0 1 0 10z" /></svg></button>
       <button class="icon round theme" id="themeBtn" title="Light / dark (d)" aria-label="Toggle light or dark theme">
         <svg class="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5" /><path d="M12 1v3M12 20v3M1 12h3M20 12h3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" stroke-width="2" stroke-linecap="round" /></svg>
@@ -174,9 +180,64 @@
   <div id="caption" class="glass" hidden></div>
   <div id="tooltip" class="glass" hidden></div>
   <div id="toast" hidden></div>
+  <div id="about" hidden>
+    <article class="glass" role="dialog" aria-modal="true" aria-labelledby="aboutTitle">
+      <button class="x" id="aboutClose" aria-label="Close">×</button>
+      <p class="eyebrow">About the model</p>
+      <h2 id="aboutTitle">How INDRA works</h2>
+      <p class="lede">A small neural network that learned India’s weather from 16 years of daily data, then rolls it forward day by day, and lets you change the start to see an alternate future.</p>
+
+      <ol class="steps">
+        <li style="--i:0"><span class="num">1</span><b>Reads 3 days</b><span>Temperature, rain, wind, pressure and moisture on a 32 × 36 grid over India (1° ≈ 110 km).</span></li>
+        <li style="--i:1"><span class="num">2</span><b>Predicts tomorrow</b><span>A CNN looks at each place and its neighbours, 7 cells around, and predicts the change.</span></li>
+        <li style="--i:2"><span class="num">3</span><b>Repeats for 10 days</b><span>It feeds its own forecast back in. Calibration gently pulls far days towards normal weather.</span></li>
+        <li style="--i:3"><span class="num">4</span><b>Branches universes</b><span>With a shock it runs both starts and adds the full difference, so you see exactly what the shock caused.</span></li>
+      </ol>
+
+      <h3>How good is it <small>held-out 2021 · organisers’ scoring code</small></h3>
+      <div class="good">
+        <div class="bars" aria-label="Error reduction versus the best simple forecast">
+          <p class="cap">Lower error than the best simple guess (repeat yesterday or the seasonal normal)</p>
+          <div class="bar2" style="--v:27.5"><span>Day 1</span><i></i><b data-count="27.5" data-dec="1">0</b><em>%</em></div>
+          <div class="bar2" style="--v:11.2"><span>Day 4</span><i></i><b data-count="11.2" data-dec="1">0</b><em>%</em></div>
+          <div class="bar2" style="--v:2.7"><span>Day 8</span><i></i><b data-count="2.7" data-dec="1">0</b><em>%</em></div>
+          <p class="cap">Heavy rain (≥ 10 mm/day) hit score on day 1: <b>0.50</b> vs 0.43 for repeat-yesterday.</p>
+        </div>
+        <div class="tiles">
+          <div class="tile" style="--i:0"><b data-count="0.1" data-dec="1">0</b><em> s</em><span>for a 10-day forecast on a laptop CPU</span></div>
+          <div class="tile" style="--i:1"><b data-count="98" data-dec="0">0</b><em>–99 %</em><span>of a shock’s day-1 effect stays near the shock</span></div>
+          <div class="tile" style="--i:2"><b data-count="6" data-dec="0">0</b><em> / 6</em><span>official validator checks pass</span></div>
+          <div class="tile" style="--i:3"><b data-count="0.90" data-dec="2">0</b><em> AUC</em><span>INDRA-Risk heavy-rain warnings (heat: 0.99)</span></div>
+        </div>
+      </div>
+
+      <div class="acols">
+        <section>
+          <h3>Model card</h3>
+          <dl class="kv">
+            <dt>Main model</dt><dd>Residual CNN, 534,726 weights</dd>
+            <dt>Second model</dt><dd>INDRA-Risk CNN, 28,274 weights: chance of heavy rain and heat stress</dd>
+            <dt>Trained on</dt><dd>2005–2020 daily data; 2021 kept aside for testing</dd>
+            <dt>Training</dt><dd>1-day steps, then 2, 4 and 6 days in a row so it learns to fix its own drift</dd>
+            <dt>Safety rules</dt><dd>Rain and moisture never below 0; temperature stays within −40…+60 °C; a zero shock changes nothing</dd>
+            <dt>Runs</dt><dd>Fully offline on CPU; the only stored table is the 2005–2020 average weather per calendar day</dd>
+          </dl>
+        </section>
+        <section>
+          <h3>Honest limits</h3>
+          <ul class="lim">
+            <li style="--i:0">Heavy-rain skill fades after day 1; days 4 and 8 only match the seasonal normal.</li>
+            <li style="--i:1">The monsoon-stall shock fades near the Arabian Sea instead of spreading.</li>
+            <li style="--i:2">One cell is ~110 km: no street-level weather, India only.</li>
+            <li style="--i:3">Impact indices and alerts are simple rules, not agency-tuned.</li>
+          </ul>
+        </section>
+      </div>
+    </article>
+  </div>
   <div id="help" class="glass" hidden>
     <h3>Shortcuts</h3>
-    <dl><dt>Space</dt><dd>Play / pause</dd><dt>← →</dt><dd>Previous / next day</dd><dt>g / m / z</dt><dd>3D globe / 2D map / Street 3D</dd><dt>a</dt><dd>Alerts</dd>
+    <dl><dt>Space</dt><dd>Play / pause</dd><dt>← →</dt><dd>Previous / next day</dd><dt>g / m / z</dt><dd>3D globe / 2D map / Street 3D</dd><dt>a</dt><dd>Alerts</dd><dt>r</dt><dd>Scenario report PDF</dd><dt>i</dt><dd>About the model</dd>
       <dt>1–4</dt><dd>Prime / Multiverse / Δ / Observed</dd><dt>d</dt><dd>Light / dark</dd><dt>f / c</dt><dd>Focus / cinema layout</dd>
       <dt>t</dt><dd>Guided tour</dd><dt>s</dt><dd>Snapshot</dd><dt>Shift+click</dt><dd>Move the shock</dd><dt>?</dt><dd>This help</dd></dl>
   </div>

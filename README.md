@@ -41,6 +41,8 @@ npm run dev          # http://localhost:5173 (server expected on :8000)
 
 * **Realistic 3D globe:** sunlight for the simulated date, city lights on the night side, ocean sun glint, relief shading, a scattering atmosphere, lit clouds that cast shadows, animated wind, falling rain where INDRA forecasts it, and lightning in heavy-rain cells.
 * **Light / dark theme** with a circular-reveal transition (`d`). **Layouts:** Full, Focus and Cinema (`f` / `c`). **Guided tour** of every event (`t`). **Snapshot** to PNG (`s`). Playback speed. Press `?` for all shortcuts.
+* **Scenario report** (`r` or the download button): a one-click PDF of the current run, built in the browser: event, shock, view snapshot, Prime vs Multiverse impacts, all-India chart, city table, alerts, shock spread and engine checks.
+* **About the model** (`i`): how INDRA works in four steps, held-out 2021 results, model card and honest limits.
 * **Street 3D** (`z`, or *Street 3D ↗* next to the city picker): MapLibre GL map that flies to the city's state, then down to street level with satellite imagery, 3D buildings and terrain, with INDRA's live field draped on top (fading at street zoom, since one forecast cell is ~110 km). Needs internet for tiles (OpenFreeMap, AWS terrain, Esri imagery); the server and grader stay offline.
 * **City forecast:** All India or 12 cities, 10-day temperature / rain / wind, Prime next to Multiverse.
 * **Alerts & warnings** (`a`): heavy-rain alerts at IMD thresholds (≥ 64.5 / 115.6 / 204.5 mm/day → Moderate / High / Critical) and heat alerts from the heat-stress rule, per day and state, with Low = INDRA-Risk watch, severity/state/type filters, "NEW in multiverse" tags after a shock, and dos & don'ts. Self-check: `node dashboard/src/alerts.test.mjs`.

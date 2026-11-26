@@ -68,5 +68,11 @@ export class Street3D {
     m.once('moveend', () => m.flyTo({ center: [lon, lat], zoom: 16, pitch: 65, bearing: -25, duration: 4200, curve: 1.2, essential: true }));
   }
 
+  /** JPEG of the current frame; read inside a render event because the WebGL buffer is cleared afterwards */
+  snapshot() {
+    const m = this.map; if (!m) return Promise.resolve(null);
+    return new Promise(res => { m.once('render', () => res(m.getCanvas().toDataURL('image/jpeg', 0.85))); m.triggerRepaint(); });
+  }
+
   async overview() { await this.ensure(); this.map.flyTo({ center: [81, 22], zoom: 4.3, pitch: 20, bearing: 0, duration: 2000 }); }
 }
