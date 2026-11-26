@@ -1,0 +1,7 @@
+torch
+numpy
+fastapi
+uvicorn
+# training / evaluation only
+xarray
+netCDF4

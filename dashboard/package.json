@@ -1,0 +1,9 @@
+{
+  "name": "indra-dashboard",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": { "dev": "vite --port 5173", "build": "vite build", "preview": "vite preview --port 5173" },
+  "dependencies": { "three": "0.170.0", "d3-geo": "3.1.1", "d3-zoom": "3.0.0", "d3-selection": "3.0.0", "topojson-client": "3.1.0", "world-atlas": "2.0.2" },
+  "devDependencies": { "vite": "6.0.7" }
+}

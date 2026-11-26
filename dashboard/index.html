@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>INDRA Climate Twin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/src/style.css" />
+  <script>try { const t = localStorage.getItem('indra-theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}</script>
+</head>
+<body class="layout-full">
+  <div id="stage">
+    <canvas id="globe"></canvas>
+    <div id="map2d"><canvas id="mapBase"></canvas><canvas id="mapField"></canvas><canvas id="mapWind"></canvas><canvas id="mapUi"></canvas></div>
+  </div>
+
+  <header class="topbar glass">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" class="logo" aria-hidden="true"><path d="M17 2 6 18h8l-3 12 15-18h-9l4-10z" /></svg>
+      <div><b>INDRA</b><span>Climate Digital Twin · India</span></div>
+    </div>
+    <div class="seg" id="viewSeg" role="tablist" aria-label="View">
+      <button data-view="globe" class="on">3D Globe</button>
+      <button data-view="map">2D Map</button>
+    </div>
+    <div class="seg" id="modeSeg" role="tablist" aria-label="Universe">
+      <button data-mode="prime" class="on">Timeline Prime</button>
+      <button data-mode="multi">Multiverse</button>
+      <button data-mode="delta">Δ Shock impact</button>
+      <button data-mode="truth">Observed</button>
+    </div>
+    <div class="tools">
+      <div class="menu-wrap">
+        <button class="icon" id="viewBtn" aria-haspopup="true" aria-expanded="false" title="View options (v)">
+          <svg viewBox="0 0 24 24"><path d="M3 5h18v2H3zm0 6h18v2H3zm0 6h18v2H3z" /></svg><span>View</span>
+        </button>
+        <div class="menu glass" id="viewMenu" hidden>
+          <h4>Layout</h4>
+          <div class="seg full" id="layoutSeg">
+            <button data-layout="full" class="on">Full</button>
+            <button data-layout="focus">Focus</button>
+            <button data-layout="cinema">Cinema</button>
+          </div>
+          <h4>Effects</h4>
+          <label class="sw"><input type="checkbox" id="optWind" checked /><i></i>Wind particles</label>
+          <label class="sw"><input type="checkbox" id="optClouds" checked /><i></i>Clouds &amp; shadows</label>
+          <label class="sw"><input type="checkbox" id="optRain" checked /><i></i>Rain &amp; lightning</label>
+          <label class="sw"><input type="checkbox" id="optBorders" checked /><i></i>Country borders</label>
+          <label class="sw"><input type="checkbox" id="optCities" checked /><i></i>City labels (2D)</label>
+          <label class="sw"><input type="checkbox" id="optRotate" /><i></i>Auto-rotate globe</label>
+          <h4>Playback speed</h4>
+          <div class="seg full" id="speedSeg">
+            <button data-speed="0.5">0.5×</button><button data-speed="1" class="on">1×</button><button data-speed="2">2×</button>
+          </div>
+        </div>
+      </div>
+      <button class="icon" id="tourBtn" title="Guided tour of all events (t)"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-2 14.5v-9l7 4.5-7 4.5z" /></svg><span>Tour</span></button>
+      <button class="icon round" id="snapBtn" title="Save snapshot (s)"><svg viewBox="0 0 24 24"><path d="M9 3 7.2 5H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.2L15 3H9zm3 14a5 5 0 1 1 0-10 5 5 0 0 1 0 10z" /></svg></button>
+      <button class="icon round theme" id="themeBtn" title="Light / dark (d)" aria-label="Toggle light or dark theme">
+        <svg class="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5" /><path d="M12 1v3M12 20v3M1 12h3M20 12h3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" stroke-width="2" stroke-linecap="round" /></svg>
+        <svg class="moon" viewBox="0 0 24 24"><path d="M21 14.5A9 9 0 0 1 9.5 3a7.5 7.5 0 1 0 11.5 11.5z" /></svg>
+      </button>
+    </div>
+    <div class="status" id="status"><i></i><span>connecting…</span></div>
+  </header>
+
+  <aside class="panel left glass">
+    <section>
+      <h3>Initial state</h3>
+      <select id="windowSel" aria-label="Initial state window"></select>
+      <p class="muted" id="windowDesc"></p>
+    </section>
+    <section>
+      <h3>Layer</h3>
+      <div class="chips" id="layerChips"></div>
+      <p class="muted small" id="layerNote"></p>
+    </section>
+    <section>
+      <h3>Multiverse shock</h3>
+      <div class="presets" id="presets"></div>
+      <div class="shockform">
+        <label>Variable
+          <select id="shockVar">
+            <option value="t2m">Temperature (K)</option>
+            <option value="tcwv">Moisture (% of current)</option>
+            <option value="wind">Wind speed (% of current)</option>
+            <option value="tp">Rainfall (mm/day)</option>
+            <option value="msl">Pressure (hPa)</option>
+          </select>
+        </label>
+        <label>Magnitude <output id="magOut"></output>
+          <input type="range" id="shockMag" min="-6" max="6" step="0.1" value="3" />
+        </label>
+        <div class="row2">
+          <label>Center lat <input type="number" id="shockLat" step="0.5" value="14" /></label>
+          <label>Center lon <input type="number" id="shockLon" step="0.5" value="88" /></label>
+        </div>
+        <label>Radius (°) <output id="radOut"></output>
+          <input type="range" id="shockRad" min="1" max="10" step="0.5" value="6" />
+        </label>
+        <p class="hint">Tip: <b>Shift + click</b> anywhere on the globe or map to move the shock.</p>
+        <p class="warn" id="shockWarn" hidden></p>
+        <button class="primary" id="runBtn">Run multiverse</button>
+        <button class="ghost" id="ensBtn">Run 5-member ensemble</button>
+      </div>
+    </section>
+  </aside>
+
+  <aside class="panel right glass">
+    <section>
+      <h3>Impact module <span class="muted small">live from /simulate</span></h3>
+      <div class="cards" id="cards"></div>
+    </section>
+    <section>
+      <h3>ML risk outlook <span class="muted small">INDRA-Risk</span></h3>
+      <div id="riskBars" class="riskbars"></div>
+    </section>
+    <section>
+      <h3 id="chartTitle">All-India land mean</h3>
+      <svg id="chart" viewBox="0 0 320 150" preserveAspectRatio="none"></svg>
+      <div class="legend" id="chartLegend"></div>
+    </section>
+    <section>
+      <h3>Shock propagation</h3>
+      <svg id="prop" viewBox="0 0 320 110" preserveAspectRatio="none"></svg>
+      <p class="muted small" id="propNote">Run a multiverse shock to see how far it spreads each day.</p>
+    </section>
+    <section>
+      <h3>Engine telemetry</h3>
+      <dl class="tele" id="tele"></dl>
+    </section>
+  </aside>
+
+  <footer class="timeline glass">
+    <button class="play" id="playBtn" aria-label="Play">
+      <svg viewBox="0 0 24 24"><path id="playIcon" d="M7 4v16l13-8z" /></svg>
+    </button>
+    <div class="tl">
+      <div class="tlhead"><b id="dayLabel">Day 0</b><span id="dateLabel"></span></div>
+      <input type="range" id="dayRange" min="0" max="10" step="0.01" value="0" aria-label="Forecast day" />
+      <div class="ticks" id="ticks"></div>
+    </div>
+    <div class="legendbar"><span id="legLo"></span><canvas id="legend" width="220" height="10"></canvas><span id="legHi"></span><em id="legUnit"></em></div>
+  </footer>
+
+  <div id="caption" class="glass" hidden></div>
+  <div id="tooltip" class="glass" hidden></div>
+  <div id="toast" hidden></div>
+  <div id="help" class="glass" hidden>
+    <h3>Shortcuts</h3>
+    <dl><dt>Space</dt><dd>Play / pause</dd><dt>← →</dt><dd>Previous / next day</dd><dt>g / m</dt><dd>3D globe / 2D map</dd>
+      <dt>1–4</dt><dd>Prime / Multiverse / Δ / Observed</dd><dt>d</dt><dd>Light / dark</dd><dt>f / c</dt><dd>Focus / cinema layout</dd>
+      <dt>t</dt><dd>Guided tour</dd><dt>s</dt><dd>Snapshot</dd><dt>Shift+click</dt><dd>Move the shock</dd><dt>?</dt><dd>This help</dd></dl>
+  </div>
+  <div id="loader"><div class="ring"></div><b>INDRA</b><span id="loaderMsg">Loading Earth…</span></div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
