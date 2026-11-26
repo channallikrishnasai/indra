@@ -67,11 +67,11 @@ Scored with the organisers' own `monsoon_r1.scoring` on all 355 ten-day windows 
 
 | Lead | t2m | tp | u10 | v10 | msl | tcwv | **Mean** | vs repeat-yesterday | vs climatology |
 |---|---|---|---|---|---|---|---|---|---|
-| Day 1 | 0.205 | 0.276 | 0.256 | 0.303 | 0.328 | 0.297 | **0.278** | 0.278 | 0.494 |
-| Day 4 | 0.142 | 0.036 | 0.109 | 0.099 | 0.104 | 0.174 | **0.111** | 0.280 | 0.111 |
-| Day 8 | 0.046 | -0.041 | 0.015 | 0.013 | 0.026 | 0.038 | **0.016** | 0.269 | 0.016 |
+| Day 1 | 0.205 | 0.276 | 0.257 | 0.304 | 0.328 | 0.297 | **0.278** | 0.278 | 0.494 |
+| Day 4 | 0.141 | 0.035 | 0.109 | 0.099 | 0.105 | 0.174 | **0.111** | 0.280 | 0.111 |
+| Day 8 | 0.044 | -0.042 | 0.014 | 0.013 | 0.027 | 0.040 | **0.016** | 0.269 | 0.016 |
 
-INDRA beats both baselines on every channel at days 1 and 4, and on every channel except rain at day 8 (skill −0.041). The mean skill over days 1/4/8 is 0.135, above the 0.12 needed for full RMSE points, with a small margin.
+INDRA beats both baselines on every channel at days 1 and 4, and on every channel except rain at day 8 (skill −0.042). The mean skill over days 1/4/8 is 0.135, above the 0.12 needed for full RMSE points, with a small margin.
 
 **Heavy-rain hits** (CSI at 10 mm/day; 1 = perfect, 0 = no hits):
 
@@ -100,7 +100,7 @@ t2m 1.01 · tp 0.67 · u10 0.75 · v10 0.78 · msl 0.89 · tcwv 0.90. All pass; 
 
 **INDRA-Risk** (held-out 2021 ROC-AUC, where 0.5 = guessing and 1 = perfect): heavy rain ≥ 64.5 mm/day **0.90**, heat stress **0.99**.
 
-**Estimated automatic score:** forecast 43.6 / 45 (RMSE 30.0, heavy rain 13.6) · anti-blur 10 / 10 · causality 13.1 / 15 · repo 15 / 15 → **≈ 82 / 85** before the brief. These numbers come from 2021; the judge uses unseen 2023–24 windows.
+**Estimated automatic score:** forecast 43.7 / 45 (RMSE 30.0, heavy rain 13.7) · anti-blur 10 / 10 · causality 13.1 / 15 · repo 15 / 15 → **≈ 82 / 85** before the brief. These numbers come from 2021; the judge uses unseen 2023–24 windows.
 
 **Known weaknesses:** heavy-rain skill fades after day 1. The monsoon-stall response stays near the Arabian Sea instead of spreading outward by days 4–8. Rain at day 8 is slightly less accurate than repeat-yesterday (skill −0.04), traded for the heavy-rain gain.
 
@@ -133,7 +133,7 @@ Training takes about 1.5 hours on an 8-thread CPU.
 * `tools/window_server.py` is a dashboard-only helper for picking a start date. It reads local data that is not in the repo, and the grader never runs it. `serve.py` never imports it.
 
 * **Heavy-rain skill** fades after day 1; at day 8, rain is slightly less accurate than repeat-yesterday. Cause: errors compound over the 10-step rollout. A heavier-rain retrain was tried and rejected because it worsened day 8. Fix needs a different training objective, not a retune.
-* **Monsoon-stall shock** fades near the Arabian Sea instead of spreading. Cause: the local model damps shocks over open sea. Not tuned to the checker.
+* **Monsoon-stall shock** (Arabian Sea box, −40% wind, 15 July 2021 start): its response energy falls from 259 (day 1) to 117 (day 10) in standard-deviation units, and the share inside the shock box falls from 0.62 to 0.29. The energy-weighted distance grows from 999 km to 1434 km, so it spreads slowly and remains near the box. It fails the propagation check in the judge's causality test. Cause: the local model damps shocks over open sea. Not tuned to the checker.
 * **Resolution:** one cell is ~110 km (1° grid). No street-level weather. Fix needs finer input data.
 * **Impact indices and alerts** are simple research rules (IMD-style rain bands, a heat rule), not agency-tuned and not official warnings.
 * The physics core covers India's 32 × 36 grid only. The globe shows the whole world for context, but shocks far away (e.g. the Atlantic) cannot be simulated, and the UI says so.

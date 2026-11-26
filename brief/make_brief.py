@@ -80,12 +80,12 @@ s += [P("3 · Results on held-out 2021 (355 windows, organisers’ monsoon_r1.sc
              ["Day 8", ".046", "-.041", ".015", ".013", ".026", ".038", "<b>.016</b>", "<b>.28</b> / .20 / .26"]],
             [13 * mm, 12 * mm, 12 * mm, 12 * mm, 12 * mm, 12 * mm, 12 * mm, 19 * mm, 66 * mm]),
       Spacer(1, 1.5),
-      P("Skill = 1 − RMSE / RMSE of the better of repeat-yesterday and climatology: positive on every channel and lead except rain at day 8 (−0.04). Day-8 variance ratio "
+      P("Skill = 1 − RMSE / RMSE of the better of repeat-yesterday and climatology: positive on every channel and lead except rain at day 8 (−0.042, slightly worse than repeat-yesterday). Day-8 variance ratio "
         "0.67–1.01 (judge band 0.40–2.5). Warm-Bay shock passes all four causality checks (99% of day-1 response near the box). The zero shock is "
         "bit-identical. Schema validator 6/6, 0.09–0.16 s per 10-day call. Estimated automatic score ≈ 82 / 85 (full 2021 set).", small)]
 s += [P("4 · Failure modes and limits", h2)] + B([
     "<b>Heavy rain:</b> a rain quantile map (fitted on 2015–2020) raised heavy-rain CSI from 6.7 to 13.6 points (of 15), at a small cost to rain accuracy at day 8. We kept the halfway strength.",
-    "<b>Monsoon-stall shock does not spread</b> by days 4–8 on our test window: its response stays near the Arabian Sea box and fades.",
+    "<b>Monsoon-stall shock spreads slowly and stays near its box:</b> on the 15 July 2021 start, response energy falls from 259 (day 1) to 117 (day 10), and the share inside the box falls from 0.62 to 0.29. It fails the propagation check.",
     "<b>Day-8 rain</b> is sharper (blur ratio 0.67) but slightly less accurate than repeat-yesterday. <b>Domain-bound:</b> remote drivers (ENSO, the Atlantic) enter only via the grid state.",
 ])
 s += [P("5 · System architecture", h2), arch()]

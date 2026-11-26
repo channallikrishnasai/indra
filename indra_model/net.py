@@ -36,7 +36,8 @@ def to_physical(y: np.ndarray) -> np.ndarray:
 
 
 def doy_from_sincos(s: float, c: float) -> float:
-    """Inverse of [sin(2 pi d/365), cos(2 pi d/365)] -> d in [0, 365)."""
+    """Inverse of [sin(2 pi d/365), cos(2 pi d/365)] -> d in [0, 365).
+    d is the 0-based day of year of the LAST input day (1 Jan = 0), the convention train.py uses."""
     return (math.atan2(s, c) / (2 * math.pi) * 365.0) % 365.0
 
 

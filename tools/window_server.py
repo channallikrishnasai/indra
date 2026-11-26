@@ -41,7 +41,7 @@ def window(date: str = Query(..., pattern=r"^\d{4}-\d{2}-\d{2}$")):
     if DAYS[i] != d or (DAYS[i - 2:i + 11] != d + np.arange(-2, 11)).any():
         raise HTTPException(404, "the data has a gap around this date")
     block = np.ascontiguousarray(DATA[i - 2:i + 11])                      # 3 inputs + 10 observed
-    doy = (d - d.astype("datetime64[Y]")).astype(int) + 1                 # same convention as tools/make_windows.py
+    doy = (d - d.astype("datetime64[Y]")).astype(int)                     # 0-based, as in training (1 Jan = 0)
     return {"date": date, "doy": int(doy), "doy_sincos": [float(np.sin(2 * np.pi * doy / 365)), float(np.cos(2 * np.pi * doy / 365))],
             "shape": list(block.shape), "b64": base64.b64encode(block.tobytes()).decode("ascii")}
 

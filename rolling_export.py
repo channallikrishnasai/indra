@@ -34,7 +34,7 @@ def main():
     leads = [1, 4, 8]; rm = {L: [] for L in leads}; rp = {L: [] for L in leads}; rc = {L: [] for L in leads}
     hits = {k: {L: [[], []] for L in leads} for k in ("m", "p", "c")}; series = []
     for i in idx:
-        out = model.simulate(data[i - 2:i + 1], float(doy[i] + 1), 10)
+        out = model.simulate(data[i - 2:i + 1], float(doy[i]), 10)   # 0-based doy of the LAST input day
         for L in leads:
             tr = data[i + L]; c = clim[(doy[i] + L) % 366]
             rm[L].append(S.rmse_lat(out[L - 1], tr)); rp[L].append(S.rmse_lat(data[i], tr)); rc[L].append(S.rmse_lat(c, tr))

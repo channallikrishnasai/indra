@@ -33,7 +33,7 @@ def main():
     leads = [1, 4, 8]; rm = {L: [] for L in leads}; rp = {L: [] for L in leads}; rc = {L: [] for L in leads}
     hits = {k: {L: [[], []] for L in leads} for k in ("m", "p", "c")}; ratios = []
     for i in idx:
-        out = model.simulate(data[i - 2:i + 1], float(doy[i] + 1), 10)
+        out = model.simulate(data[i - 2:i + 1], float(doy[i]), 10)   # 0-based doy of the LAST input day (training convention)
         for L in leads:
             tr = data[i + L]; c = clim[(doy[i] + L) % 366]
             rm[L].append(S.rmse_lat(out[L - 1], tr)); rp[L].append(S.rmse_lat(data[i], tr)); rc[L].append(S.rmse_lat(c, tr))
@@ -52,7 +52,7 @@ def main():
     r = np.array(ratios); print("\nday-8 variance ratio per channel:", np.round(np.nanmean(r, 0), 2), " anti-blur pts", round(S.anti_blur_points(r), 2))
 
     # shocks on one monsoon window
-    i = int(np.where(t == np.datetime64(f"{a.year}-07-15"))[0][0]); init = data[i - 2:i + 1]; d = float(doy[i] + 1)
+    i = int(np.where(t == np.datetime64(f"{a.year}-07-15"))[0][0]); init = data[i - 2:i + 1]; d = float(doy[i])
     base = model.simulate(init, d, 10); res = []
     for name, box in (("warm_ocean", S.BOX_BAY_OF_BENGAL), ("monsoon_stall", S.BOX_ARABIAN_SEA)):
         out = model.simulate(init, d, 10, S.make_shock(name, init[-1], std))

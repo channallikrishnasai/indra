@@ -30,7 +30,7 @@ def main():
     for day, title, desc in EVENTS:
         i = int(np.where(times == np.datetime64(day))[0][0])
         blocks.append(ds["data"].values[i - 2:i + 11].astype("f4"))      # 3 inputs + 10 observed
-        doy = int((np.datetime64(day) - np.datetime64(day[:4] + "-01-01")).astype(int)) + 1
+        doy = int((np.datetime64(day) - np.datetime64(day[:4] + "-01-01")).astype(int))   # 0-based, as in training (1 Jan = 0)
         meta.append({"id": day, "title": title, "desc": desc, "date": day, "doy": doy,
                      "doy_sincos": [float(np.sin(2 * np.pi * doy / 365)), float(np.cos(2 * np.pi * doy / 365))]})
     arr = np.stack(blocks)                                                  # [W,13,6,32,36]
