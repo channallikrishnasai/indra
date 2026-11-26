@@ -103,7 +103,7 @@ def main():
             v = val()
             print(f"K={K} ep {e+1}/{epochs} loss {run/math.ceil(len(perm)/a.bs):.4f} val-rmse(norm) d1 {v[0]:.3f} d4 {v[3]:.3f} d8 {v[7]:.3f}  {time.time()-t0:.0f}s", flush=True)
             Path(a.out).parent.mkdir(parents=True, exist_ok=True)
-            torch.save({"state": model.state_dict(), "width": a.width, "mean": mean, "std": std}, a.out)
+            torch.save({"state": model.state_dict(), "width": a.width, "mean": torch.from_numpy(mean), "std": torch.from_numpy(std)}, a.out)  # tensors, not numpy pickles
     meta = {"model": "INDRA v1", "val_from": a.val_from, "width": a.width, "params": sum(p.numel() for p in model.net.parameters())}
     Path(a.out).with_suffix(".json").write_text(json.dumps(meta, indent=1))
     print("saved", a.out)

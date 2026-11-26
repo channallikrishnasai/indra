@@ -52,7 +52,7 @@ def main():
     print("alpha per lead (rows) x channel t2m tp u10 v10 msl tcwv:\n", np.round(alpha.numpy(), 2))
     print("rain alpha (physical):", np.round(alpha_tp.numpy(), 2))
     ck = torch.load(a.weights, map_location="cpu", weights_only=False)
-    ck.update(alpha=alpha.numpy(), alpha_tp=alpha_tp.numpy(), clim_tp=ct)
+    ck.update(alpha=alpha, alpha_tp=alpha_tp, clim_tp=torch.from_numpy(ct))  # tensors: the server loads with weights_only=True
     torch.save(ck, a.weights); print("saved calibration into", a.weights)
 
 
