@@ -842,6 +842,8 @@ function initUI() {
   $('shockList').onclick = e => { const i = e.target.dataset.i; if (i !== undefined) { S.shockList.splice(+i, 1); renderShockList(); } };
   $('runBtn').onclick = runMultiverse; $('ensBtn').onclick = runEnsemble; $('resetBtn').onclick = resetBaseline;
   $('reloadBtn').onclick = () => location.reload();
+  $('auditBtn').onclick = () => showAudit('shock');
+  $('whatifBtn').onclick = () => showAudit('warm1');
   $('cmpBtn').onclick = async () => {
     const { openCompare } = await import('./compare.js');
     openCompare({ S, simulate, buildPerturbation, DAY, toast, makePdf: async r => (await import('./report.js')).makeCompareReport({ ...r, commit: COMMIT, lastRun: S.lastRun, model: S.modelName }) });
@@ -934,6 +936,29 @@ function offline() {
   const msg = `<p class="offline">The INDRA engine is not running at ${API}.<br>Start it with <code>python serve.py --port 8000</code>, then press Reload (top bar).</p>`;
   for (const id of ['cards', 'cityCards', 'riskBars', 'tele']) $(id).innerHTML = msg;
 }
+// state audit: affected and unaffected states for the current shock, or for a uniform +1 K over India
+async function showAudit(kind) {
+  if (!S.prime || !S.clim || !S.land) return toast('Wait for the forecast to load first.', 'info');
+  const { auditRows, auditHtml } = await import('./audit.js');
+  let scen, title, note;
+  if (kind === 'shock') {
+    if (!S.multi) return toast('Run a shock first (left panel), then open the audit.', 'info');
+    scen = S.multi; title = `State audit: ${S.shock.name}`;
+    note = 'Each state compared with Timeline Prime over the same 10 days.';
+  } else {
+    setBusy(true, 'running +1 K over all India…');
+    try { scen = await simulate(S.init, buildPerturbation({ box: [6, 38, 65, 101], parts: [['t2m', 1]] }, S.init.subarray(2 * DAY, 3 * DAY)).delta); }
+    catch (e) { setBusy(false); return toast(e.message); }
+    setBusy(false, `${S.modelName} · ready`);
+    title = 'What if +1 K everywhere';
+    note = 'Every day of the 10-day run warmed by 1 K over all of India, same start. Rain and wind respond through the model.';
+  }
+  const rows = await auditRows(S.prime, scen, S.clim);
+  $('audit').innerHTML = `<button class="x" id="auditClose" aria-label="Close audit">×</button>` + auditHtml(rows, title, note);
+  $('audit').hidden = false;
+  $('auditClose').onclick = () => ($('audit').hidden = true);
+}
+
 // clear every shock and go back to Timeline Prime
 function resetBaseline() {
   if (!S.prime) return;

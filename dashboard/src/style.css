@@ -408,3 +408,13 @@ body.layout-focus #map3d .maplibregl-ctrl-top-right, body.layout-cinema #map3d .
 .cstats b { font-family: 'JetBrains Mono', monospace; font-size: 15px; } .cstats small { color: var(--muted); }
 .cstats em { font-style: normal; font-size: 11px; color: var(--muted); } .cstats em.up { color: var(--warm); } .cstats em.down { color: var(--accent); }
 .cmphead .primary, .cmphead .ghost { width: auto; margin: 0; }
+
+/* state audit */
+#audit { position: fixed; left: 50%; top: 84px; transform: translateX(-50%); width: min(780px, calc(100vw - 40px)); max-height: calc(100vh - 110px); z-index: 32; padding: 14px 16px; overflow: auto; animation: pop .3s var(--ease); }
+#audit h2 { font-size: 16px; margin: 0 0 4px; } #audit h3 { font-size: 13px; margin: 12px 0 4px; }
+#audit .x { position: absolute; top: 10px; right: 12px; border: 0; background: none; font-size: 22px; color: var(--muted); cursor: pointer; }
+table.audit { width: 100%; border-collapse: collapse; font-size: 12px; font-family: 'JetBrains Mono', monospace; }
+table.audit th { text-align: left; color: var(--muted); font-weight: 500; font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; padding: 4px 6px; border-bottom: 1px solid var(--line); }
+table.audit td { padding: 4px 6px; border-bottom: 1px solid var(--line); }
+table.audit tr.hit td:first-child { font-weight: 700; }
+table.audit td.up { color: var(--warm); } table.audit td.down { color: var(--accent); }
