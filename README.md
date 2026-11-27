@@ -6,11 +6,7 @@ INDRA rolls India's daily weather forward from the last three observed days, and
 
 > **Not an official IMD forecast.** A research prototype: 1-degree cells (about 110 km), India only, rule-based alerts, validated on 2019, 2020 and 2021 (see Limits).
 
-## Launch video
-
-[![INDRA launch video: click to watch brag.mp4](docs/brag.jpg)](docs/brag.mp4)
-
-[**Watch the 20-second launch video (brag.mp4)**](docs/brag.mp4) · preview below
+## Preview
 
 ![INDRA preview](docs/brag-preview.gif)
 
@@ -70,7 +66,6 @@ flowchart LR
 | Scoring | Organisers' code, unchanged, plus our evaluation wrapper | `evaluate.py` (uses `monsoon_r1`) |
 | Dashboard | Vite + three.js globe, d3 2D map, MapLibre Street 3D, PDF reports | `dashboard/` |
 | Video walkthrough | 8-minute technical architecture deep dive and operational walkthrough | `docs/INDRA_Weather_Platform.mp4` |
-| Launch teaser | 20 s motion graphics (Hyperframes), with the real app screenshot | `docs/brag.mp4` |
 | Brief | Two-page PDF: model, results, limits, impact | `brief/INDRA_brief.pdf` |
 | Preview | Animated preview of the dashboard | `docs/brag-preview.gif` |
 
