@@ -6,7 +6,15 @@ INDRA rolls India's daily weather forward from the last three observed days, and
 
 > **Not an official IMD forecast.** A research prototype: 1-degree cells (about 110 km), India only, rule-based alerts, validated on 2019, 2020 and 2021 (see Limits).
 
-## Platform video walkthrough
+## Launch video
+
+[![INDRA launch video: click to watch brag.mp4](docs/brag.jpg)](docs/brag.mp4)
+
+[**Watch the 20-second launch video (brag.mp4)**](docs/brag.mp4) · preview below
+
+![INDRA preview](docs/brag-preview.gif)
+
+## Deep-dive platform video walkthrough
 
 [![INDRA Weather Platform: click to watch full video walkthrough](docs/indra_platform_poster.jpg)](docs/INDRA_Weather_Platform.mp4)
 
@@ -19,16 +27,6 @@ An illustrated visual and audio deep dive into the architecture, physics, and de
 * **03:00 — Chapter 3: Overcoming Error Snowballing:** Why standard autoregressive models drift after Day 3, and how INDRA solves it via 2-stage curriculum rollout training ($1 \rightarrow 2 \rightarrow 4 \rightarrow 6$ steps) plus per-lead climatological anomaly calibration.
 * **05:15 — Chapter 4: Real-World Risk (Deterministic vs. Probabilistic):** Comparing the Main Stepper (534,726 weights, deterministic 10-day physical grid) with INDRA-Risk (28,274 weights, learned MOS probabilities for heavy rain $\ge 64.5\text{ mm}$ and heat stress).
 * **07:00 — Chapter 5: Future of Weather AI & Operational Decisions:** Translating digital twin simulations into action for disaster management (NDMA), agriculture planning, and renewable grid stability across India.
-
----
-
-### Quick launch preview (20 s)
-
-[![INDRA launch video: click to watch brag.mp4](docs/brag.jpg)](docs/brag.mp4)
-
-[**Watch the 20-second launch teaser (brag.mp4)**](docs/brag.mp4) · preview below
-
-![INDRA preview](docs/brag-preview.gif)
 
 ## Key numbers
 
