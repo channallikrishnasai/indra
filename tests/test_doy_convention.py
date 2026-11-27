@@ -41,6 +41,46 @@ def record_steps(model, init, doy_last, steps=10):
 def main():
     results = {}
     model = load_indra(WEIGHTS)
+
+    if not DATA.exists():
+        print(f"Notice: {DATA} not present (git-ignored to keep repo under 2 GB offline limit).")
+        print("Running standalone DOY convention, sin/cos roundtrip, rollout phase, and zero-shock tests...")
+        
+        # 1. the last input day is encoded as its own doy; the first forecast day is the next day
+        dummy_init = np.zeros((3, NC, NLAT, NLON), dtype="f4")
+        seen = record_steps(model, dummy_init, 200.0)
+        results["step doys after last day 200"] = seen[:3]
+        assert seen[:3] == [201.0, 202.0, 203.0], seen
+
+        # 2. sin/cos round trip: API encoding -> decoded doy -> same doy
+        worst = max(abs(doy_from_sincos(*sincos(d)) - d) for d in np.arange(0, 365, 0.5))
+        results["max |doy round trip - doy| (days)"] = worst
+        assert worst < 1e-6, worst
+
+        # 3. December -> January (non-leap): last day 364 (31 Dec); forecast 365 must encode as 1 January (= 0)
+        seen = record_steps(model, dummy_init, 364.0, steps=2)
+        results["step doys after 31 Dec (non-leap)"] = seen
+        assert np.allclose(sincos(seen[0]), sincos(0.0), atol=1e-12)
+
+        # 6. API path == offline path for identical inputs: serve.py decodes doy_sincos with doy_from_sincos
+        offline = model.simulate(dummy_init, 200.0, 10)
+        api = model.simulate(dummy_init, doy_from_sincos(*sincos(200)), 10)
+        diff = float(np.abs(offline - api).max())
+        results["API vs offline max abs diff (physical units)"] = diff
+        assert diff < 1e-3, diff
+
+        # 7. zero-shock check from the contract: max difference below 1e-3 of each channel's standard deviation
+        zero = model.simulate(dummy_init, 200.0, 10, np.zeros((NC, NLAT, NLON), "f4"))
+        chan_std = np.array([13.46, 7.55, 2.90, 2.43, 619.0, 20.49])   # stats.json, physical channel stds
+        rel = float(max(np.abs(zero[:, c] - offline[:, c]).max() / chan_std[c] for c in range(NC)))
+        results["zero-shock max diff / channel std (contract: < 1e-3)"] = rel
+        assert rel < 1e-3, rel
+
+        for k, v in results.items():
+            print(f"{k}: {v}")
+        print("ALL STANDALONE DOY CHECKS PASSED (Dataset-dependent tests 4-5 skipped: NetCDF omitted per offline rules)")
+        return
+
     ds = xr.open_dataset(DATA)
     data = ds["data"].values.astype("f4")
     t = ds["time"].values.astype("datetime64[D]")
