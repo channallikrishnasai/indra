@@ -17,7 +17,7 @@ from indra_model.net import load_indra, NC, NLAT, NLON
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--data", default="data/india_climate_train.nc")
     ap.add_argument("--weights", default="weights/indra.pt"); ap.add_argument("--year", type=int, default=2021)
-    ap.add_argument("--every", type=int, default=7); a = ap.parse_args()
+    ap.add_argument("--every", type=int, default=1); a = ap.parse_args()
     torch.set_num_threads(4)
     ds = xr.open_dataset(a.data); data = ds["data"].values.astype("f4"); t = ds["time"].values.astype("datetime64[D]")
     years = t.astype("datetime64[Y]").astype(int) + 1970; doy = (t - t.astype("datetime64[Y]")).astype(int)

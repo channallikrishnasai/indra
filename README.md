@@ -184,7 +184,7 @@ CSI is pooled over all windows and cells at each lead. The 15 points use the mea
 Clear skill at day 1. At days 4 and 8 INDRA beats repeat-yesterday but only ties climatology. **Day-8 rain RMSE skill is −0.042** on 2021: rain at day 8 is worse than the better of repeat-yesterday or climatology. Do not treat the 10-day forecast as equally reliable at every lead.
 
 **No blur** (day-8 spatial variance ÷ real variance; the judge wants 0.40–2.5):
-t2m 1.01 · tp 0.67 · u10 0.75 · v10 0.78 · msl 0.89 · tcwv 0.90. All pass; rain is now well above the 0.40 floor.
+t2m 1.01 · tp 0.68 · u10 0.75 · v10 0.78 · msl 0.89 · tcwv 0.90. All pass; rain is now well above the 0.40 floor.
 
 **Shocks** (2021-07-15 window, judge definitions):
 
