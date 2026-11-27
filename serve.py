@@ -50,7 +50,9 @@ def _arr(x, shape):
 def simulate(init_states, doy_sincos, steps, perturbation):
     """The perturbation is a physical delta on init_states[-1]; INDRA adds it (clamping rain/moisture at 0) internally."""
     out = MODEL.simulate(init_states, doy_from_sincos(*doy_sincos), steps, perturbation)
-    return np.nan_to_num(out, nan=0.0, posinf=0.0, neginf=0.0)
+    if not np.isfinite(out).all():   # fail loudly: a non-finite forecast is a model failure, not a value to hide
+        raise HTTPException(500, "model produced non-finite values")
+    return out
 
 
 @app.post("/health")
