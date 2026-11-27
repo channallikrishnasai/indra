@@ -6,7 +6,27 @@ INDRA rolls India's daily weather forward from the last three observed days, and
 
 > **Not an official IMD forecast.** A research prototype: 1-degree cells (about 110 km), India only, rule-based alerts, validated on 2019, 2020 and 2021 (see Limits).
 
-## Preview
+## Platform video walkthrough
+
+[![INDRA Weather Platform: click to watch full video walkthrough](docs/indra_platform_poster.jpg)](docs/INDRA_Weather_Platform.mp4)
+
+[**▶ Watch the complete 8-minute technical video walkthrough (INDRA_Weather_Platform.mp4)**](docs/INDRA_Weather_Platform.mp4)
+
+An illustrated visual and audio deep dive into the architecture, physics, and decision-making engine behind INDRA:
+
+* **00:00 — Chapter 1: AI Meets Weather:** The digital twin paradigm, continuous spatiotemporal fluid dynamics vs. simple weather apps, and India's 6-variable atmospheric grid.
+* **01:15 — Chapter 2: The Residual Stepper (Inside the Core Engine):** How the convolutional neural network processes sliding weather windows, the role of GroupNorm & GELU in bounding activations, and the 7-cell receptive field enforcing the physical speed limit of atmospheric transport (causality by construction).
+* **03:00 — Chapter 3: Overcoming Error Snowballing:** Why standard autoregressive models drift after Day 3, and how INDRA solves it via 2-stage curriculum rollout training ($1 \rightarrow 2 \rightarrow 4 \rightarrow 6$ steps) plus per-lead climatological anomaly calibration.
+* **05:15 — Chapter 4: Real-World Risk (Deterministic vs. Probabilistic):** Comparing the Main Stepper (534,726 weights, deterministic 10-day physical grid) with INDRA-Risk (28,274 weights, learned MOS probabilities for heavy rain $\ge 64.5\text{ mm}$ and heat stress).
+* **07:00 — Chapter 5: Future of Weather AI & Operational Decisions:** Translating digital twin simulations into action for disaster management (NDMA), agriculture planning, and renewable grid stability across India.
+
+---
+
+### Quick launch preview (20 s)
+
+[![INDRA launch video: click to watch brag.mp4](docs/brag.jpg)](docs/brag.mp4)
+
+[**Watch the 20-second launch teaser (brag.mp4)**](docs/brag.mp4) · preview below
 
 ![INDRA preview](docs/brag-preview.gif)
 
@@ -51,6 +71,8 @@ flowchart LR
 | INDRA-Risk | Small CNN for heavy-rain and heat probabilities (AUC 0.90 / 0.99 on 2021) | `indra_model/risk.py`, `train_risk.py` |
 | Scoring | Organisers' code, unchanged, plus our evaluation wrapper | `evaluate.py` (uses `monsoon_r1`) |
 | Dashboard | Vite + three.js globe, d3 2D map, MapLibre Street 3D, PDF reports | `dashboard/` |
+| Video walkthrough | 8-minute technical architecture deep dive and operational walkthrough | `docs/INDRA_Weather_Platform.mp4` |
+| Launch teaser | 20 s motion graphics (Hyperframes), with the real app screenshot | `docs/brag.mp4` |
 | Brief | Two-page PDF: model, results, limits, impact | `brief/INDRA_brief.pdf` |
 | Preview | Animated preview of the dashboard | `docs/brag-preview.gif` |
 

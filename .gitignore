@@ -7,3 +7,13 @@ dashboard/public/windows.bin
 dashboard/public/windows.json
 private/
 verify-round1-evidence/
+brag-output-*/frames/
+brag-output-*/composition/.hyperframes/
+brag-output-*/composition/renders/
+brag-output-*/brag.mp4
+brag-output-*/brag-preview.gif
+brag-output-*/brag.jpg
+brag-output-*/composition/assets/music/
+.venv/
+.memorygraph/
+brag-output-*/frame0.png
